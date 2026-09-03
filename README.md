@@ -31,6 +31,9 @@ Swagger e dashboards do Grafana — atras de um **proxy nginx unico** em
 
 - Docker Desktop com **Compose v2**
 - git
+- GNU Make (opcional — os alvos do `Makefile` sao atalhos para `docker compose`;
+  no Windows: `winget install ezwinports.make`, ou rode os comandos
+  `docker compose --env-file .env ...` direto / via WSL)
 
 ## Quick start
 
@@ -39,6 +42,15 @@ git clone --recurse-submodules https://github.com/fga-eps-mds/MeasureSoftGram-Pl
 cd MeasureSoftGram-Platform
 cp .env.example .env      # preencha a secao "GitHub OAuth" (opcional p/ login local user/senha)
 make setup                # submodulos -> build -> up -> smoke test
+```
+
+Sem `make`:
+
+```bash
+git submodule update --init --recursive
+cp .env.example .env
+docker compose --env-file .env up -d --build
+bash scripts/smoke-test.sh
 ```
 
 > Primeiro build leva **~5-10 min** (uv sync do Service + `pnpm build` do Front).
