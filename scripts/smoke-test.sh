@@ -4,8 +4,11 @@
 set -uo pipefail
 cd "$(dirname "$0")/.."
 
-BASE="${PUBLIC_URL:-http://localhost}"
-[ -f .env ] && BASE="$(grep -E '^PUBLIC_URL=' .env | cut -d= -f2- | tr -d '\r' | xargs || true)"
+BASE="${PUBLIC_URL:-}"
+if [ -z "$BASE" ] && [ -f .env ]; then
+  # pega PUBLIC_URL do .env, descartando comentario inline e espacos
+  BASE="$(grep -E '^PUBLIC_URL=' .env | head -1 | cut -d= -f2- | sed 's/#.*//' | tr -d '\r' | xargs || true)"
+fi
 BASE="${BASE:-http://localhost}"
 
 DEADLINE=$(( $(date +%s) + 120 ))
