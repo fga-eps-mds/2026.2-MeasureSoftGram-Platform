@@ -172,29 +172,117 @@ Fonte unica de configuracao. Principais:
 
 Lista completa comentada em [`.env.example`](.env.example).
 
-## Fluxo fork -> branch -> PR
+## Fluxo de forks e Pull Requests
 
-Cada pessoa trabalha no proprio fork de cada repo e abre PR para
-`fga-eps-mds/*`.
+São **7 repositórios** no fluxo: os 6 componentes + o próprio Platform. Cada um
+tem um repo **central** em `fga-eps-mds/*` e o **fork pessoal** de cada dev
+(`<voce>/*`). Ninguém commita direto no central: sempre fork → branch → PR.
+
+```
+  fga-eps-mds/MeasureSoftGram-Platform   (central, .gitmodules -> fga-eps-mds/*)
+        ▲  PR                                   │ referencia como submódulo
+        │                                       ▼
+  <voce>/MeasureSoftGram-Platform ───────► fga-eps-mds/MeasureSoftGram-Service ... (x6)
+   (seu fork; use-fork.sh                        ▲  PR
+    aponta local p/ <voce>/*)                    │
+                                          <voce>/MeasureSoftGram-Service ... (x6)
+```
+
+### 1. Setup único
+
+Faça **fork no GitHub** dos 7 repositórios (botão *Fork* em cada
+`github.com/fga-eps-mds/MeasureSoftGram-*`). Depois clone o **seu fork do
+Platform** e registre o central como `upstream`:
 
 ```bash
-./scripts/use-fork.sh <seu-usuario>          # aponta os submodulos p/ seus forks
+git clone --recurse-submodules https://github.com/<voce>/MeasureSoftGram-Platform.git
+cd MeasureSoftGram-Platform
+git remote add upstream https://github.com/fga-eps-mds/MeasureSoftGram-Platform.git
+```
+
+### 2. Apontar os submódulos para os seus forks
+
+```bash
+./scripts/use-fork.sh <voce>            # ou: make use-fork GH_USER=<voce>
 git submodule update --remote --init
-cd MeasureSoftGram-Service
-git checkout -b feature/minha-mudanca
-# ... commits, push, PR para fga-eps-mds/MeasureSoftGram-Service ...
 ```
 
-Para atualizar o ponteiro de um submodulo neste repo (num PR do Platform):
+O script grava a troca **só no `.git/config` local** — o `.gitmodules`
+versionado **continua apontando para `fga-eps-mds/*`**. Assim um PR de bump de
+ponteiro nunca vaza URL de fork. Confira / desfaça:
 
 ```bash
-cd MeasureSoftGram-Service && git checkout develop && git pull
-cd .. && git add MeasureSoftGram-Service && git commit -m "chore: bump Service"
+./scripts/use-fork.sh --status         # URL efetiva de cada submódulo
+./scripts/use-fork.sh --reset          # volta para fga-eps-mds/* (make use-fork-reset)
 ```
 
-`make submodules-update` faz isso para todos de uma vez.
+Dentro de cada submódulo, adicione também o central como `upstream` (para
+sincronizar depois):
 
-Voltar aos repos centrais: `./scripts/use-fork.sh --reset`.
+```bash
+git submodule foreach 'git remote add upstream https://github.com/fga-eps-mds/$name.git || true'
+```
+
+### 3. Mudança em um componente (Service, Front, Core, ...)
+
+```bash
+cd MeasureSoftGram-Service
+git checkout develop && git pull upstream develop     # parte do develop atual
+git checkout -b feat/minha-mudanca
+# ... código, commits ...
+git push origin feat/minha-mudanca                    # origin = <voce>/MeasureSoftGram-Service
+```
+
+Abra o PR em `github.com/<voce>/MeasureSoftGram-Service` → **base:
+`fga-eps-mds/MeasureSoftGram-Service` `develop`**. Teste local subindo a stack
+com esse submódulo apontado para o seu fork/branch (`docker compose up -d --build`).
+
+### 4. Atualizar o ponteiro do submódulo no Platform
+
+Depois que o PR do componente **for mergeado no `develop` central**, o Platform
+precisa passar a referenciar esse novo commit. O ponteiro **tem que apontar para
+um commit que exista no repo central** — então volte a URL para `fga-eps-mds`
+antes de gravar:
+
+```bash
+./scripts/use-fork.sh --reset && git submodule update --remote
+# ou, um a um:
+cd MeasureSoftGram-Service && git fetch origin && git checkout develop && git pull
+cd ..
+
+git checkout -b chore/bump-service
+git add MeasureSoftGram-Service
+git commit -m "chore: bump Service para <hash-curto> (feat X)"
+git push origin chore/bump-service
+```
+
+`make submodules-update` avança **todos** os submódulos para o topo de `develop`
+de uma vez (útil para um bump geral).
+
+### 5. Merge do fork do Platform → Platform central
+
+Abra o PR em `github.com/<voce>/MeasureSoftGram-Platform` → **base:
+`fga-eps-mds/MeasureSoftGram-Platform` `develop`**. Nesse PR:
+
+- O CI **`compose-smoke`** roda `submodules: recursive` → `docker compose build`
+  → `up -d` → `scripts/smoke-test.sh`. Se um bump de submódulo quebra a stack, o
+  PR fica vermelho.
+- Confirme que o `git diff` do PR mexe **só nos ponteiros de submódulo e/ou nos
+  arquivos de orquestração** — nunca em `.gitmodules` apontando para fork.
+- Um mantenedor revisa e faz **merge (squash) no `develop`**.
+
+Promoção para produção: PR periódico `develop` → `main` no Platform central
+(dispara o deploy).
+
+### 6. Manter os forks em dia
+
+```bash
+# Platform
+git checkout develop && git fetch upstream && git merge --ff-only upstream/develop && git push origin develop
+
+# todos os submódulos
+git submodule foreach 'git checkout develop && git fetch upstream && git merge --ff-only upstream/develop && git push origin develop'
+```
 
 ## Comandos uteis
 

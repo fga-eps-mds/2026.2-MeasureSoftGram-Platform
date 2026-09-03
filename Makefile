@@ -5,7 +5,7 @@ COMPOSE_TOOLS := $(DC) --profile tools
 .DEFAULT_GOAL := help
 .PHONY: help setup up up-min down restart clean build rebuild logs ps smoke \
         seed migrate superuser shell-service cli action-test \
-        submodules-update use-fork test-service test-front
+        submodules-update use-fork use-fork-reset test-service test-front
 
 help: ## Lista os alvos
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | sort | \
@@ -65,8 +65,13 @@ action-test: ## Sobe o container do Action e replaya os workflows com act
 submodules-update: ## Avanca os submodulos para o topo de develop
 	./scripts/update-submodules.sh
 
-use-fork: ## Aponta os submodulos para forks: make use-fork GH_USER=<user>
+use-fork: ## Aponta os submodulos para seus forks: make use-fork GH_USER=<user>
 	./scripts/use-fork.sh $(GH_USER)
+	git submodule update --remote --init
+
+use-fork-reset: ## Volta os submodulos para fga-eps-mds/*
+	./scripts/use-fork.sh --reset
+	git submodule update --remote
 
 test-service: ## Suite do Service dentro do container
 	$(DC) exec service pytest

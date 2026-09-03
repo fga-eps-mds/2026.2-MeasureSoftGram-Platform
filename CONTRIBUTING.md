@@ -21,11 +21,18 @@ repositorios de cada componente.
 
 ## Alterando um componente
 
-1. `./scripts/use-fork.sh <seu-usuario>` e `git submodule update --remote --init`.
-2. `cd MeasureSoftGram-<Componente>`, crie um branch, commit, push.
-3. Abra PR para `fga-eps-mds/MeasureSoftGram-<Componente>`.
-4. Depois do merge, abra um PR **aqui** avancando o ponteiro do submodulo
-   (`git add MeasureSoftGram-<Componente> && git commit`).
+Fluxo completo (setup de forks, apontar submodulos, bump de ponteiro, merge do
+fork do Platform para o central) esta no **README, secao
+"Fluxo de forks e Pull Requests"**. Resumo:
+
+1. `./scripts/use-fork.sh <seu-usuario>` + `git submodule update --remote --init`
+   (muda so o `.git/config` local; `.gitmodules` continua em `fga-eps-mds/*`).
+2. `cd MeasureSoftGram-<Componente>`, branch a partir de `develop`, commit, push
+   para o seu fork; PR com base `fga-eps-mds/MeasureSoftGram-<Componente>` `develop`.
+3. Apos o merge: `./scripts/use-fork.sh --reset && git submodule update --remote`,
+   branch no seu fork do Platform, `git add MeasureSoftGram-<Componente>`, commit,
+   PR com base `fga-eps-mds/MeasureSoftGram-Platform` `develop`.
+4. O CI `compose-smoke` valida o bump antes do merge (squash) no `develop`.
 
 ## Antes de abrir o PR
 
