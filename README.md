@@ -292,6 +292,7 @@ make up-min                          # sem Grafana
 make logs S=service                  # logs de um servico
 make smoke                           # smoke test
 make seed / migrate / superuser
+make grant-access USER=admin         # ve os dados fake logando com admin/admin
 make cli ARGS="init"                 # roda o CLI (profile tools)
 make action-test                     # replaya os workflows do Action com act
 make test-service / test-front
@@ -308,6 +309,20 @@ make test-service / test-front
 - **Mudei `NEXT_PUBLIC_*` e nao surtiu efeito**: sao inlined no bundle;
   `docker compose build front`.
 - **Build do Front lento**: normal na primeira vez (`pnpm build` de producao).
+- **`/products/` (ou `/organizations/`) vazio ou com erro / `github-organizations`
+  400**: o backend só mostra org/produto para quem é **membro da organização**.
+  Os dados fake do seed pertencem a `SEED_GITHUB_USERNAME` (default `msgramteste`).
+  - logando com **`admin`/`admin`**: `./scripts/grant-access.sh admin`
+    (`make grant-access USER=admin`) te adiciona a todas as orgs.
+  - logando com **GitHub**: ponha seu login em `SEED_GITHUB_USERNAME` no `.env`,
+    `docker compose --env-file .env up -d service` e
+    `docker compose --env-file .env exec service python manage.py load_initial_data`;
+    ou rode `./scripts/grant-access.sh <seu-login-github>` depois do primeiro login.
+  - `github-organizations` 400 (`GitHub account not linked`): esse endpoint usa
+    o token GitHub **do usuário logado** (não o `GITHUB_TOKEN` do `.env`); ele só
+    existe após "Entrar com GitHub". Para testar com `admin`, grave um PAT no
+    perfil: `docker compose exec service python manage.py shell -c "..."` setando
+    `user.github_access_token` (ver histórico).
 - **O servico de banco nao pode ser renomeado**: o datasource do Grafana
   (`MeasureSoftGram-Service/grafana/provisioning/datasources/measuresoftgram.yml`)
   tem `url: db:5432` hardcoded.

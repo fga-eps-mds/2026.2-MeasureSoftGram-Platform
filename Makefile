@@ -4,7 +4,7 @@ COMPOSE_TOOLS := $(DC) --profile tools
 
 .DEFAULT_GOAL := help
 .PHONY: help setup up up-min down restart clean build rebuild logs ps smoke \
-        seed migrate superuser shell-service cli action-test \
+        seed grant-access migrate superuser shell-service cli action-test \
         submodules-update use-fork use-fork-reset test-service test-front
 
 help: ## Lista os alvos
@@ -46,6 +46,9 @@ smoke: ## Roda o smoke test
 seed: ## Repopula dados iniciais + Grafana
 	$(DC) exec service python manage.py load_initial_data
 	$(DC) exec service python manage.py seed_grafana || true
+
+grant-access: ## Da acesso a todas as orgs a um usuario: make grant-access USER=admin
+	./scripts/grant-access.sh $(USER)
 
 migrate: ## Roda migrations
 	$(DC) exec service python manage.py migrate

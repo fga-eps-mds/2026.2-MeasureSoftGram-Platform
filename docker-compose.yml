@@ -49,6 +49,13 @@ services:
       CREATE_FAKE_DATA: ${CREATE_FAKE_DATA:-TRUE}
       AMBIENT_TEST_OR_DEV: ${AMBIENT_TEST_OR_DEV:-TRUE}
       RUN_LOAD_INITIAL_DATA: ${RUN_LOAD_INITIAL_DATA:-true}
+      SUPERADMIN_USERNAME: ${SUPERADMIN_USERNAME:-admin}
+      SUPERADMIN_EMAIL: ${SUPERADMIN_EMAIL:-admin@admin.com}
+      SUPERADMIN_PASSWORD: ${SUPERADMIN_PASSWORD:-admin}
+      # dono dos dados fake do seed — so ficam visiveis p/ membros da org.
+      # Ponha aqui o SEU login do GitHub para ve-los ao "Entrar com GitHub".
+      SEED_GITHUB_USERNAME: ${SEED_GITHUB_USERNAME:-msgramteste}
+      SEED_GITHUB_EMAIL: ${SEED_GITHUB_EMAIL:-msgram.teste@gmail.com}
       GUNICORN_WORKERS: ${GUNICORN_WORKERS:-3}
       GUNICORN_TIMEOUT: ${GUNICORN_TIMEOUT:-120}
       ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1,service,proxy}
