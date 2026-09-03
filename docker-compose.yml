@@ -6,7 +6,8 @@
 #
 # Fonte unica de configuracao: .env na raiz (copie de .env.example).
 # Perfis: db/service/front/grafana/proxy sobem por padrao;
-#         cli e action ficam no profile "tools".
+#         cli / action / plugin ficam no profile "tools";
+#         ai / mcp-inspector ficam no profile "ai".
 # ============================================================
 
 volumes:
@@ -169,4 +170,53 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./MeasureSoftGram-Action:/workspace
+    networks: [msgram]
+
+  # ---- Plugin do VS Code (profile tools) ----
+  # Nao e um servico: container util para `npm install` / testes / empacotar o
+  # .vsix sem exigir Node na maquina do aluno.
+  #   docker compose --profile tools run --rm plugin npm install
+  plugin:
+    image: node:20
+    profiles: ["tools"]
+    working_dir: /plugin
+    volumes:
+      - ./MeasureSoftGram-Plugin:/plugin
+    networks: [msgram]
+
+  # ---- Servidor MCP / AI (profile ai) ----
+  # Expoe os dados do Service como ferramentas para LLMs. Nao entra no `up`
+  # padrao para nao somar tempo de build a quem so quer abrir http://localhost.
+  #   make ai-up   ->   clientes MCP falam com http://localhost:8000/mcp
+  ai:
+    container_name: ai
+    build:
+      context: ./MeasureSoftGram-AI
+      target: runtime
+    environment:
+      SERVICE: ${SERVICE:-http://service:8080/api/v1/}
+      MSGRAM_USER: ${MSGRAM_USER:-admin}
+      MSGRAM_PASSWORD: ${MSGRAM_PASSWORD:-admin}
+      MCP_TRANSPORT: ${MCP_TRANSPORT:-streamable-http}
+    ports:
+      - "${MCP_PORT:-8000}:8000"
+    depends_on:
+      service:
+        condition: service_healthy
+    profiles: ["ai"]
+    networks: [msgram]
+    restart: unless-stopped
+
+  # Cliente web para inspecionar o MCP sem plugar um cliente real.
+  #   http://localhost:6274
+  mcp-inspector:
+    image: node:20-slim
+    working_dir: /app
+    command: sh -c "HOST=0.0.0.0 npx --yes @modelcontextprotocol/inspector"
+    ports:
+      - "${MCP_INSPECTOR_PORT:-6274}:6274"
+      - "6277:6277"
+    depends_on:
+      - ai
+    profiles: ["ai"]
     networks: [msgram]

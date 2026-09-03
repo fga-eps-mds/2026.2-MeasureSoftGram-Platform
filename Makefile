@@ -5,7 +5,8 @@ COMPOSE_TOOLS := $(DC) --profile tools
 .DEFAULT_GOAL := help
 .PHONY: help setup up up-min down restart clean build rebuild logs ps smoke \
         seed grant-access set-github-token migrate superuser shell-service cli action-test \
-        submodules-update use-fork use-fork-reset test-service test-front
+        submodules-update semester semester-status promote ai-up ai-logs plugin \
+        test-service test-front
 
 help: ## Lista os alvos
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | sort | \
@@ -71,13 +72,23 @@ action-test: ## Sobe o container do Action e replaya os workflows com act
 submodules-update: ## Avanca os submodulos para o topo de develop
 	./scripts/update-submodules.sh
 
-use-fork: ## Aponta os submodulos para seus forks: make use-fork GH_USER=<user>
-	./scripts/use-fork.sh $(GH_USER)
-	git submodule update --remote --init
+semester: ## Aponta os submodulos para o fork do semestre (S no padrao AAAA.S): make semester S=2026.2
+	./scripts/semester.sh use $(S)
 
-use-fork-reset: ## Volta os submodulos para fga-eps-mds/*
-	./scripts/use-fork.sh --reset
-	git submodule update --remote
+semester-status: ## URL efetiva de cada submodulo + semestre configurado
+	./scripts/semester.sh status
+
+promote: ## Promove os submodulos do fork de semestre para o central
+	./scripts/promote-to-central.sh
+
+ai-up: ## Builda e sobe o servidor MCP (profile ai)
+	$(DC) --profile ai up -d ai
+
+ai-logs: ## Logs do servidor MCP
+	$(DC) --profile ai logs -f ai
+
+plugin: ## Roda um comando no container do Plugin: make plugin ARGS="npm install"
+	$(DC) --profile tools run --rm plugin $(ARGS)
 
 test-service: ## Suite do Service dentro do container
 	$(DC) exec service pytest

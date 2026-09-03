@@ -22,3 +22,11 @@
 	path = MeasureSoftGram-Action
 	url = https://github.com/fga-eps-mds/MeasureSoftGram-Action.git
 	branch = develop
+[submodule "MeasureSoftGram-Plugin"]
+	path = MeasureSoftGram-Plugin
+	url = https://github.com/fga-eps-mds/MeasureSoftGram-Plugin.git
+	branch = develop
+[submodule "MeasureSoftGram-AI"]
+	path = MeasureSoftGram-AI
+	url = https://github.com/fga-eps-mds/MeasureSoftGram-AI.git
+	branch = develop

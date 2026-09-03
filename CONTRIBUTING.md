@@ -1,17 +1,26 @@
 # Contribuindo com o MeasureSoftGram-Platform
 
-Este repo segue o mesmo fluxo de governanca dos demais repositorios do
-MeasureSoftGram: **fork -> branch -> Pull Request** para
-`fga-eps-mds/MeasureSoftGram-Platform`.
+Este repo segue o mesmo fluxo de governança dos demais repositórios do
+MeasureSoftGram: **trabalho por semestre**. A cada semestre a equipe forka os 9
+repos na própria org com o prefixo do semestre no padrão **`AAAA.S`**
+(`fga-eps-mds/<SEM>-MeasureSoftGram-*` — ex.: `2026.2-MeasureSoftGram-*`, e esse
+número muda a cada semestre) e trabalha o semestre inteiro só no fork — branch →
+Pull Request **dentro do próprio fork de semestre**. Ao final, merge do fork de
+semestre → central.
+
+Detalhes completos no **README, seção "Fluxo de trabalho por semestre"**.
 
 ## Setup de desenvolvimento
 
 ```bash
-git clone --recurse-submodules <url-do-seu-fork>
-cd MeasureSoftGram-Platform
+git clone --recurse-submodules https://github.com/fga-eps-mds/2026.2-MeasureSoftGram-Platform.git
+cd 2026.2-MeasureSoftGram-Platform
 cp .env.example .env
 make setup
 ```
+
+O `.gitmodules` do fork de semestre já aponta para os `2026.2-*` — não há passo
+de "apontar submódulos".
 
 ## O que vive aqui
 
@@ -21,18 +30,20 @@ repositorios de cada componente.
 
 ## Alterando um componente
 
-Fluxo completo (setup de forks, apontar submodulos, bump de ponteiro, merge do
-fork do Platform para o central) esta no **README, secao
-"Fluxo de forks e Pull Requests"**. Resumo:
+Fluxo completo (setup do semestre, bump de ponteiro, merge do fork de semestre
+para o central) está no **README, seção "Fluxo de trabalho por semestre"**.
+Resumo:
 
-1. `./scripts/use-fork.sh <seu-usuario>` + `git submodule update --remote --init`
-   (muda so o `.git/config` local; `.gitmodules` continua em `fga-eps-mds/*`).
-2. `cd MeasureSoftGram-<Componente>`, branch a partir de `develop`, commit, push
-   para o seu fork; PR com base `fga-eps-mds/MeasureSoftGram-<Componente>` `develop`.
-3. Apos o merge: `./scripts/use-fork.sh --reset && git submodule update --remote`,
-   branch no seu fork do Platform, `git add MeasureSoftGram-<Componente>`, commit,
-   PR com base `fga-eps-mds/MeasureSoftGram-Platform` `develop`.
-4. O CI `compose-smoke` valida o bump antes do merge (squash) no `develop`.
+1. `cd MeasureSoftGram-<Componente>`, branch a partir de `develop`, commit, push
+   para `origin` (= `2026.2-MeasureSoftGram-<Componente>`); PR **dentro do
+   próprio fork de semestre**.
+2. Após o merge: `make submodules-update`, branch no fork de semestre do
+   Platform, `git add MeasureSoftGram-<Componente>`, commit, PR no
+   `2026.2-MeasureSoftGram-Platform`.
+3. O CI `compose-smoke` valida o bump antes do merge (squash) no `develop`.
+4. Na entrega, promoção fork de semestre → central: veja o README
+   (`./scripts/semester.sh reset` + `./scripts/promote-to-central.sh`, na ordem
+   correta).
 
 ## Antes de abrir o PR
 

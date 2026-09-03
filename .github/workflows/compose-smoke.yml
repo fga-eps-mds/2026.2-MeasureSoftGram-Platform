@@ -11,6 +11,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          # `submodules: recursive` funciona no fork de semestre porque os
+          # 2026.2-MeasureSoftGram-* sao publicos na mesma org. Se algum for
+          # privado, adicione `token:` com um PAT que os enxergue.
           submodules: recursive
 
       - name: Preparar .env
