@@ -318,11 +318,22 @@ make test-service / test-front
     `docker compose --env-file .env up -d service` e
     `docker compose --env-file .env exec service python manage.py load_initial_data`;
     ou rode `./scripts/grant-access.sh <seu-login-github>` depois do primeiro login.
-  - `github-organizations` 400 (`GitHub account not linked`): esse endpoint usa
-    o token GitHub **do usuário logado** (não o `GITHUB_TOKEN` do `.env`); ele só
-    existe após "Entrar com GitHub". Para testar com `admin`, grave um PAT no
-    perfil: `docker compose exec service python manage.py shell -c "..."` setando
-    `user.github_access_token` (ver histórico).
+- **`github-organizations` (ou repos do GitHub) sempre 400 `GitHub account not
+  linked or access token missing`, mesmo logado via GitHub**: esta versão do
+  Service roda `django-allauth` com `SOCIALACCOUNT_STORE_TOKENS=False` — ao
+  "Entrar com GitHub" a conta é vinculada mas **o access token do OAuth não é
+  persistido**. Esses endpoints leem `CustomUser.github_access_token`, que fica
+  vazio. Workaround até o Service corrigir (ligar `STORE_TOKENS` + `SocialApp` no
+  banco): gravar um PAT no perfil do usuário logado —
+
+  ```bash
+  ./scripts/set-github-token.sh <username>       # usa GITHUB_TOKEN do .env
+  # make set-github-token USER=<username>
+  ```
+
+  O `<username>` é o login do GitHub de quem entrou (ex.: `zzzBECK`), ou `admin`
+  se estiver no login local. Não é `GITHUB_TOKEN` do `.env` que resolve — ele é
+  só para coleta de métricas no backend.
 - **O servico de banco nao pode ser renomeado**: o datasource do Grafana
   (`MeasureSoftGram-Service/grafana/provisioning/datasources/measuresoftgram.yml`)
   tem `url: db:5432` hardcoded.

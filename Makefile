@@ -4,7 +4,7 @@ COMPOSE_TOOLS := $(DC) --profile tools
 
 .DEFAULT_GOAL := help
 .PHONY: help setup up up-min down restart clean build rebuild logs ps smoke \
-        seed grant-access migrate superuser shell-service cli action-test \
+        seed grant-access set-github-token migrate superuser shell-service cli action-test \
         submodules-update use-fork use-fork-reset test-service test-front
 
 help: ## Lista os alvos
@@ -49,6 +49,9 @@ seed: ## Repopula dados iniciais + Grafana
 
 grant-access: ## Da acesso a todas as orgs a um usuario: make grant-access USER=admin
 	./scripts/grant-access.sh $(USER)
+
+set-github-token: ## Grava GITHUB_TOKEN no perfil do usuario: make set-github-token USER=admin
+	./scripts/set-github-token.sh $(USER)
 
 migrate: ## Roda migrations
 	$(DC) exec service python manage.py migrate
