@@ -77,27 +77,84 @@ fake e um superusuario:
 | Django admin | `admin` | `admin` |
 | Grafana | `admin` | `admin123` (`GRAFANA_PASSWORD`) |
 
-## GitHub OAuth App
+## Tokens que exigem acao manual externa
 
-O login "Entrar com GitHub" exige um OAuth App. Em
-`https://github.com/settings/developers` > **New OAuth App**:
+Nenhum e necessario para abrir `http://localhost` e logar com `admin`/`admin`.
+Preencha conforme o objetivo:
 
-| Campo | Valor |
+| Objetivo | Variaveis a preencher |
 |---|---|
-| Homepage URL | `http://localhost` |
-| Authorization callback URL | `http://localhost` (identico a `LOGIN_REDIRECT_URL`) |
+| So ver o produto / login local | nenhuma |
+| Login "Entrar com GitHub" | `GITHUB_CLIENT_ID`, `GITHUB_SECRET` |
+| Coletar metricas de repos do GitHub | `GITHUB_TOKEN` |
+| Rodar a Action (`make action-test`) | `MSGRAM_TOKEN`, `GITHUB_TOKEN` (+ `SONAR_TOKEN` se usar Sonar) |
 
-Copie **Client ID** e **Client secret** para o `.env`:
+Depois de editar o `.env`, aplique com o comando da secao
+[Aplicar mudancas no `.env`](#aplicar-mudancas-no-env).
+
+### 1. `GITHUB_CLIENT_ID` e `GITHUB_SECRET` — login por GitHub
+
+Vem de um **GitHub OAuth App**.
+
+1. Abra https://github.com/settings/developers > **New OAuth App**
+   (ou, numa organizacao: `https://github.com/organizations/<ORG>/settings/applications`).
+2. Preencha:
+
+   | Campo | Valor |
+   |---|---|
+   | Application name | `MeasureSoftGram local` (livre) |
+   | Homepage URL | `http://localhost` |
+   | Authorization callback URL | `http://localhost` — **identico** a `LOGIN_REDIRECT_URL` do `.env` |
+
+3. **Register application**.
+4. Copie o **Client ID** para `GITHUB_CLIENT_ID`.
+5. **Generate a new client secret**, copie (so aparece uma vez) para `GITHUB_SECRET`.
+
+> `GITHUB_CLIENT_ID` e `LOGIN_REDIRECT_URL` sao **build-time no Front**: exigem
+> `build front` ao alterar (o comando abaixo ja faz).
+> Mudou `PROXY_PORT`? O callback vira `http://localhost:<porta>` nos tres lugares:
+> OAuth App, `LOGIN_REDIRECT_URL` e `PUBLIC_URL`.
+
+### 2. `GITHUB_TOKEN` — coleta de metricas do GitHub
+
+Um **Personal Access Token**. Sem ele o produto sobe normal; so a coleta de
+metricas de repositorios do GitHub fica indisponivel.
+
+- **Classico** (mais simples): https://github.com/settings/tokens >
+  *Generate new token (classic)* > escopos **`repo`** e **`read:org`** > copiar `ghp_...`.
+- **Fine-grained**: https://github.com/settings/tokens?type=beta > selecionar os
+  repositorios > permissoes de leitura em *Contents*, *Pull requests*, *Issues*, *Metadata*.
+
+### 3. `MSGRAM_TOKEN` — token da API da plataforma (profile `tools` / Action)
+
+Token de autenticacao DRF do seu usuario. Com a stack no ar:
 
 ```bash
-LOGIN_REDIRECT_URL=http://localhost
-GITHUB_CLIENT_ID=<client id>
-GITHUB_SECRET=<client secret>
-GITHUB_TOKEN=<PAT com repo, read:org>
+curl -s -X POST http://localhost/api/v1/accounts/login/ \
+  -H 'Content-Type: application/json' \
+  -d '{"username":"admin","password":"admin"}'
+# {"key":"<TOKEN>"}   <- cole o valor de "key" em MSGRAM_TOKEN
 ```
 
-`GITHUB_CLIENT_ID` e `LOGIN_REDIRECT_URL` sao **build-time no Front** — depois de
-alterar, `docker compose build front` (ou `make build`).
+Alternativas: `GET http://localhost/api/v1/accounts/access-token/` (ja logado no
+Front) ou `http://localhost/admin/authtoken/tokenproxy/` no Django admin.
+
+### 4. `SONAR_TOKEN` — metricas do SonarQube/SonarCloud (opcional, so Action)
+
+- SonarCloud: https://sonarcloud.io > *My Account* > **Security** > *Generate Token*.
+- SonarQube self-hosted: *My Account* > *Security* > *Generate Token*.
+
+## Aplicar mudancas no `.env`
+
+```bash
+# recomendado: rebuilda o Front (vars build-time) e recria service + front
+docker compose --env-file .env up -d --build front service
+
+# se so mexeu em vars de runtime (sem GITHUB_CLIENT_ID / NEXT_PUBLIC_* / LOGIN_REDIRECT_URL):
+docker compose --env-file .env up -d service
+```
+
+Com `make`: `make build && make up`.
 
 ## Variaveis (`.env`)
 
