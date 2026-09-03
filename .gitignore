@@ -1,0 +1,5 @@
+.env
+/workspace/*
+!/workspace/.gitkeep
+*.log
+.DS_Store

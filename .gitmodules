@@ -1,0 +1,24 @@
+[submodule "MeasureSoftGram-Service"]
+	path = MeasureSoftGram-Service
+	url = https://github.com/fga-eps-mds/MeasureSoftGram-Service.git
+	branch = develop
+[submodule "MeasureSoftGram-Front"]
+	path = MeasureSoftGram-Front
+	url = https://github.com/fga-eps-mds/MeasureSoftGram-Front.git
+	branch = develop
+[submodule "MeasureSoftGram-Core"]
+	path = MeasureSoftGram-Core
+	url = https://github.com/fga-eps-mds/MeasureSoftGram-Core.git
+	branch = develop
+[submodule "MeasureSoftGram-Parser"]
+	path = MeasureSoftGram-Parser
+	url = https://github.com/fga-eps-mds/MeasureSoftGram-Parser.git
+	branch = develop
+[submodule "MeasureSoftGram-CLI"]
+	path = MeasureSoftGram-CLI
+	url = https://github.com/fga-eps-mds/MeasureSoftGram-CLI.git
+	branch = develop
+[submodule "MeasureSoftGram-Action"]
+	path = MeasureSoftGram-Action
+	url = https://github.com/fga-eps-mds/MeasureSoftGram-Action.git
+	branch = develop

@@ -1,0 +1,15 @@
+# Contexto de build do docker/cli/Dockerfile = raiz do Platform.
+# Sem isto o contexto explode (node_modules do Front, .venv do Service...).
+**/.git
+**/node_modules
+**/.next
+**/.venv
+**/venv
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/.mypy_cache
+**/dist
+**/coverage
+workspace/
+.env

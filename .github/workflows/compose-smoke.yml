@@ -1,0 +1,34 @@
+name: compose-smoke
+
+on:
+  pull_request:
+  push:
+    branches: [main, develop]
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Preparar .env
+        run: cp .env.example .env
+
+      - name: Build
+        run: docker compose --env-file .env build
+
+      - name: Up
+        run: docker compose --env-file .env up -d
+
+      - name: Smoke test
+        run: ./scripts/smoke-test.sh
+
+      - name: Logs (em caso de falha)
+        if: failure()
+        run: docker compose --env-file .env logs --no-color
+
+      - name: Down
+        if: always()
+        run: docker compose --env-file .env down -v
