@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Verifica que o produto inteiro respondeu atras do proxy. Retry ate 120s.
+# Verifica que o produto inteiro respondeu atras do proxy. Retry ate 300s
+# (stack em modo dev: `next dev`/`gunicorn --reload` compilam na 1a request).
 # Tambem e o job do CI (.github/workflows/compose-smoke.yml).
 set -uo pipefail
 cd "$(dirname "$0")/.."
@@ -11,7 +12,7 @@ if [ -z "$BASE" ] && [ -f .env ]; then
 fi
 BASE="${BASE:-http://localhost}"
 
-DEADLINE=$(( $(date +%s) + 120 ))
+DEADLINE=$(( $(date +%s) + 300 ))
 
 check() { # <descricao> <url> <regex de status aceitos>
   local desc="$1" url="$2" ok="$3" code
