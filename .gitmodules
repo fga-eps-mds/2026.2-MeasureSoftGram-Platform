@@ -1,32 +1,36 @@
 [submodule "MeasureSoftGram-Service"]
 	path = MeasureSoftGram-Service
-	url = https://github.com/fga-eps-mds/MeasureSoftGram-Service.git
+	url = https://github.com/fga-eps-mds/2026.2-MeasureSoftGram-Service.git
 	branch = develop
 [submodule "MeasureSoftGram-Front"]
 	path = MeasureSoftGram-Front
-	url = https://github.com/fga-eps-mds/MeasureSoftGram-Front.git
+	url = https://github.com/fga-eps-mds/2026.2-MeasureSoftGram-Front.git
 	branch = develop
 [submodule "MeasureSoftGram-Core"]
 	path = MeasureSoftGram-Core
-	url = https://github.com/fga-eps-mds/MeasureSoftGram-Core.git
+	url = https://github.com/fga-eps-mds/2026.2-MeasureSoftGram-Core.git
 	branch = develop
 [submodule "MeasureSoftGram-Parser"]
 	path = MeasureSoftGram-Parser
-	url = https://github.com/fga-eps-mds/MeasureSoftGram-Parser.git
+	url = https://github.com/fga-eps-mds/2026.2-MeasureSoftGram-Parser.git
 	branch = develop
 [submodule "MeasureSoftGram-CLI"]
 	path = MeasureSoftGram-CLI
-	url = https://github.com/fga-eps-mds/MeasureSoftGram-CLI.git
+	url = https://github.com/fga-eps-mds/2026.2-MeasureSoftGram-CLI.git
 	branch = develop
 [submodule "MeasureSoftGram-Action"]
 	path = MeasureSoftGram-Action
-	url = https://github.com/fga-eps-mds/MeasureSoftGram-Action.git
+	url = https://github.com/fga-eps-mds/2026.2-MeasureSoftGram-Action.git
 	branch = develop
 [submodule "MeasureSoftGram-Plugin"]
 	path = MeasureSoftGram-Plugin
-	url = https://github.com/fga-eps-mds/MeasureSoftGram-Plugin.git
+	url = https://github.com/fga-eps-mds/2026.2-MeasureSoftGram-Plugin.git
 	branch = develop
 [submodule "MeasureSoftGram-AI"]
 	path = MeasureSoftGram-AI
-	url = https://github.com/fga-eps-mds/MeasureSoftGram-AI.git
+	url = https://github.com/fga-eps-mds/2026.2-MeasureSoftGram-AI.git
 	branch = develop
+[submodule "MeasureSoftGram-DOC"]
+	path = MeasureSoftGram-DOC
+	url = https://github.com/fga-eps-mds/2026.2-MeasureSoftGram-DOC.git
+	branch = main
