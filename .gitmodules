@@ -33,4 +33,4 @@
 [submodule "MeasureSoftGram-DOC"]
 	path = MeasureSoftGram-DOC
 	url = https://github.com/fga-eps-mds/2026.2-MeasureSoftGram-DOC.git
-	branch = main
+	branch = develop
