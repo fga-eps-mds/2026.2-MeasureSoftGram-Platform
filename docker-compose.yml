@@ -51,7 +51,7 @@ services:
   service:
     container_name: service
     build:
-      context: ./MeasureSoftGram-Service
+      context: ./Service
       dockerfile: Dockerfile.dev
     # O Dockerfile.dev do submodulo so roda `manage.py runserver` (sem migrar
     # nem semear o banco) — dev-entrypoint.sh (deste repo, nao do submodulo)
@@ -59,7 +59,7 @@ services:
     # salvar um arquivo em src/, sem flags/engine de terceiros.
     command: ["bash", "/dev-entrypoint.sh"]
     volumes:
-      - ./MeasureSoftGram-Service/src:/src
+      - ./Service/src:/src
       - ./docker/service/dev-entrypoint.sh:/dev-entrypoint.sh:ro
     environment:
       DJANGO_SETTINGS_MODULE: ${DJANGO_SETTINGS_MODULE:-config.settings.dev}
@@ -114,7 +114,7 @@ services:
     # lidas em runtime pelo `next dev` (nao precisa rebuild, so restart).
     command: sh -c "corepack enable && pnpm install --frozen-lockfile && pnpm dev"
     volumes:
-      - ./MeasureSoftGram-Front:/usr/src
+      - ./Front:/usr/src
       - front_node_modules:/usr/src/node_modules
       - front_next_cache:/usr/src/.next
     environment:
@@ -137,8 +137,8 @@ services:
     image: grafana/grafana:latest
     volumes:
       - grafana_data:/var/lib/grafana
-      - ./MeasureSoftGram-Service/grafana/provisioning:/etc/grafana/provisioning:ro
-      - ./MeasureSoftGram-Service/grafana/dashboards:/etc/grafana/dashboards:ro
+      - ./Service/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./Service/grafana/dashboards:/etc/grafana/dashboards:ro
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-postgres}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
@@ -184,15 +184,15 @@ services:
       - ./workspace:/workspace
       # pip install -e no Dockerfile: com o codigo montado por cima, editar
       # Core/Parser/CLI vale na hora, sem rebuild da imagem.
-      - ./MeasureSoftGram-Core:/src/core
-      - ./MeasureSoftGram-Parser:/src/parser
-      - ./MeasureSoftGram-CLI:/src/cli
+      - ./Core:/src/core
+      - ./Parser:/src/parser
+      - ./CLI:/src/cli
     entrypoint: ["msgram"]
     networks: [msgram]
 
   action:
     build:
-      context: ./MeasureSoftGram-Action
+      context: ./Action
     profiles: ["tools"]
     environment:
       MSGRAM_SERVICE_HOST: ${MSGRAM_SERVICE_HOST:-http://service:8080}
@@ -201,7 +201,7 @@ services:
       GITHUB_TOKEN: ${GITHUB_TOKEN}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./MeasureSoftGram-Action:/workspace
+      - ./Action:/workspace
     networks: [msgram]
 
   # ---- Plugin do VS Code (profile tools) ----
@@ -214,7 +214,7 @@ services:
     profiles: ["tools"]
     working_dir: /plugin
     volumes:
-      - ./MeasureSoftGram-Plugin:/plugin
+      - ./Plugin:/plugin
     networks: [msgram]
 
   # ---- Servidor MCP / AI (profile ai) ----
@@ -223,10 +223,10 @@ services:
   ai:
     container_name: ai
     build:
-      context: ./MeasureSoftGram-AI
+      context: ./AI
       target: dev            # stage "dev" do Dockerfile ja roda watchfiles
     volumes:
-      - ./MeasureSoftGram-AI:/app
+      - ./AI:/app
     environment:
       SERVICE: ${SERVICE:-http://service:8080/api/v1/}
       MSGRAM_USER: ${MSGRAM_USER:-admin}
@@ -264,7 +264,7 @@ services:
     working_dir: /app
     command: sh -c "npm ci && npx docusaurus start --host 0.0.0.0 --port 3001 --poll 1000"
     volumes:
-      - ./MeasureSoftGram-DOC:/app
+      - ./DOC:/app
       - docs_node_modules:/app/node_modules
     ports:
       - "${DOCS_PORT:-3001}:3001"

@@ -1,36 +1,36 @@
 [submodule "MeasureSoftGram-Service"]
-	path = MeasureSoftGram-Service
-	url = https://github.com/fga-eps-mds/2026.2-MeasureSoftGram-Service.git
+	path = Service
+	url = https://github.com/fga-eps-mds/MeasureSoftGram-Service.git
 	branch = develop
 [submodule "MeasureSoftGram-Front"]
-	path = MeasureSoftGram-Front
-	url = https://github.com/fga-eps-mds/2026.2-MeasureSoftGram-Front.git
+	path = Front
+	url = https://github.com/fga-eps-mds/MeasureSoftGram-Front.git
 	branch = develop
 [submodule "MeasureSoftGram-Core"]
-	path = MeasureSoftGram-Core
-	url = https://github.com/fga-eps-mds/2026.2-MeasureSoftGram-Core.git
+	path = Core
+	url = https://github.com/fga-eps-mds/MeasureSoftGram-Core.git
 	branch = develop
 [submodule "MeasureSoftGram-Parser"]
-	path = MeasureSoftGram-Parser
-	url = https://github.com/fga-eps-mds/2026.2-MeasureSoftGram-Parser.git
+	path = Parser
+	url = https://github.com/fga-eps-mds/MeasureSoftGram-Parser.git
 	branch = develop
 [submodule "MeasureSoftGram-CLI"]
-	path = MeasureSoftGram-CLI
-	url = https://github.com/fga-eps-mds/2026.2-MeasureSoftGram-CLI.git
+	path = CLI
+	url = https://github.com/fga-eps-mds/MeasureSoftGram-CLI.git
 	branch = develop
 [submodule "MeasureSoftGram-Action"]
-	path = MeasureSoftGram-Action
-	url = https://github.com/fga-eps-mds/2026.2-MeasureSoftGram-Action.git
+	path = Action
+	url = https://github.com/fga-eps-mds/MeasureSoftGram-Action.git
 	branch = develop
 [submodule "MeasureSoftGram-Plugin"]
-	path = MeasureSoftGram-Plugin
-	url = https://github.com/fga-eps-mds/2026.2-MeasureSoftGram-Plugin.git
+	path = Plugin
+	url = https://github.com/fga-eps-mds/MeasureSoftGram-Plugin.git
 	branch = develop
 [submodule "MeasureSoftGram-AI"]
-	path = MeasureSoftGram-AI
-	url = https://github.com/fga-eps-mds/2026.2-MeasureSoftGram-AI.git
+	path = AI
+	url = https://github.com/fga-eps-mds/MeasureSoftGram-AI.git
 	branch = develop
 [submodule "MeasureSoftGram-DOC"]
-	path = MeasureSoftGram-DOC
-	url = https://github.com/fga-eps-mds/2026.2-MeasureSoftGram-DOC.git
+	path = DOC
+	url = https://github.com/fga-eps-mds/MeasureSoftGram-Docs.git
 	branch = main
