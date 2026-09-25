@@ -9,9 +9,9 @@ FROM python:3.12-slim
 ENV PIP_NO_CACHE_DIR=1 \
     PYTHONUNBUFFERED=1
 
-COPY Core   /src/core
-COPY Parser /src/parser
-COPY CLI    /src/cli
+COPY MeasureSoftGram-Core   /src/core
+COPY MeasureSoftGram-Parser /src/parser
+COPY MeasureSoftGram-CLI    /src/cli
 
 RUN pip install -e /src/core -e /src/parser \
     && pip install -e /src/cli
