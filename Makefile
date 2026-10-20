@@ -35,7 +35,7 @@ smoke: ## Roda o smoke test
 
 seed: ## Repopula dados iniciais e de demonstracao
 	$(DC) exec service python manage.py load_initial_data
-	$(DC) exec service python manage.py seed_grafana || true
+	$(DC) exec service python manage.py seed_grafana
 
 grant-access: ## Da acesso a todas as orgs a um usuario: make grant-access USER=admin
 	./scripts/grant-access.sh $(USER)
