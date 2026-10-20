@@ -21,7 +21,7 @@ jobs:
       - name: Build
         run: docker compose build
 
-      - name: Up (service, front, grafana — perfis default do .env.example)
+      - name: Up (service, front — perfis default do .env.example)
         run: docker compose up -d
 
       - name: Smoke test

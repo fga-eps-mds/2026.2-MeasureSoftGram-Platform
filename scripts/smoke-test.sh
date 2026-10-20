@@ -36,7 +36,6 @@ check "landing (/)"                      "$BASE/"                              '
 check "swagger"                          "$BASE/swagger/"                      '^200$'        || rc=1
 check "DRF supported-metrics"            "$BASE/api/v1/supported-metrics/"     '^(200|401|403)$' || rc=1
 check "django admin login"              "$BASE/admin/login/"                  '^200$'        || rc=1
-check "grafana health"                   "$BASE/grafana/api/health"           '^200$'        || rc=1
 
 if [ "$rc" -ne 0 ]; then
   echo "==> Smoke test FALHOU"
