@@ -8,11 +8,10 @@ cd "$(dirname "$0")/.."
 
 [ -f .env ] || { echo "==> Criando .env a partir de .env.example"; cp .env.example .env; }
 
-ALL=(service front grafana ai docs)
+ALL=(service front ai docs)
 declare -A LABEL=(
   [service]="API Django (hot reload)"
   [front]="Next.js — Front (hot reload)"
-  [grafana]="Dashboards Grafana"
   [ai]="Servidor MCP / AI (hot reload)"
   [docs]="Documentacao Docusaurus (hot reload)"
 )

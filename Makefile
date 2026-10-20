@@ -21,7 +21,7 @@ down: ## Para a stack (mantem volumes)
 
 restart: down up ## down + up
 
-clean: ## Para a stack e APAGA volumes (dados do Postgres/Grafana)
+clean: ## Para a stack e APAGA volumes (dados do Postgres)
 	$(DC) down -v
 
 logs: ## Logs (make logs S=service para um servico)
@@ -33,9 +33,9 @@ ps: ## Status dos containers
 smoke: ## Roda o smoke test
 	./scripts/smoke-test.sh
 
-seed: ## Repopula dados iniciais + Grafana
+seed: ## Repopula dados iniciais e de demonstracao
 	$(DC) exec service python manage.py load_initial_data
-	$(DC) exec service python manage.py seed_grafana || true
+	$(DC) exec service python manage.py seed_grafana
 
 grant-access: ## Da acesso a todas as orgs a um usuario: make grant-access USER=admin
 	./scripts/grant-access.sh $(USER)

@@ -2,8 +2,8 @@
 
 Repositório guarda-chuva do **MeasureSoftGram**. Referencia os nove
 repositórios do produto como **git submodules** e carrega o
-`docker-compose.yml` que sobe a stack — Front, API, Django admin, Swagger,
-dashboards do Grafana e documentação — atrás de um **proxy nginx único** em
+`docker-compose.yml` que sobe a stack — Front, API, Django admin, Swagger e
+documentação — atrás de um **proxy nginx único** em
 `http://localhost`, buildando a partir do código dos submódulos.
 
 Tudo sobe em **modo desenvolvimento**, com **hot reload**: editou o código de
@@ -31,7 +31,6 @@ um submódulo, o serviço correspondente recarrega sozinho, sem rebuild.
                     ┌─────────── proxy (nginx :80) ───────────┐
                     │   /            -> front  (Next.js :3000) │
    http://localhost │   /api /swagger /admin /static -> service (Django :8080)
-                    │   /grafana     -> grafana (:3000)        │
                     └──────────────────────┬──────────────────┘
                                            │
                                      db (postgres:18)
@@ -93,16 +92,14 @@ Você não precisa subir a stack inteira. A variável `COMPOSE_PROFILES` do
 ==> Servicos (numero p/ marcar/desmarcar, Enter p/ salvar):
   1) [x] service  API Django (hot reload)
   2) [x] front    Next.js — Front (hot reload)
-  3) [x] grafana  Dashboards Grafana
-  4) [ ] ai       Servidor MCP / AI (hot reload)
-  5) [ ] docs     Documentacao Docusaurus (hot reload)
+  3) [ ] ai       Servidor MCP / AI (hot reload)
+  4) [ ] docs     Documentacao Docusaurus (hot reload)
 ```
 
 | Profile | Sobe junto | URL | Hot reload |
 |---|---|---|---|
 | `service` | db, proxy | http://localhost/api/v1/ | sim |
 | `front` | service, db, proxy | http://localhost | sim |
-| `grafana` | db, proxy | http://localhost/grafana/ | — |
 | `ai` | service, db | http://localhost:8000/mcp | sim |
 | `docs` | — | http://localhost:3001 | sim |
 
@@ -147,7 +144,6 @@ Quando **não** basta salvar o arquivo:
 | API / DRF | http://localhost/api/v1/ |
 | Swagger | http://localhost/swagger/ |
 | Django admin | http://localhost/admin/ |
-| Grafana | http://localhost/grafana/ |
 | Documentação (profile `docs`) | http://localhost:3001 |
 | Servidor MCP (profile `ai`) | http://localhost:8000/mcp |
 | MCP Inspector (profile `ai`) | http://localhost:6274 |
@@ -160,7 +156,6 @@ fake e um superusuário:
 | Sistema | Usuário | Senha |
 |---|---|---|
 | Django admin | `admin` | `admin` |
-| Grafana | `admin` | `admin123` (`GRAFANA_PASSWORD`) |
 
 ## Tokens que exigem ação manual externa
 
@@ -231,13 +226,12 @@ Fonte única de configuração. Principais:
 
 | Variável | Default | Nota |
 |---|---|---|
-| `COMPOSE_PROFILES` | `service,front,grafana` | o que sobe com `docker compose up -d` — veja [Escolhendo os serviços](#escolhendo-os-serviços) |
+| `COMPOSE_PROFILES` | `service,front` | o que sobe com `docker compose up -d` — veja [Escolhendo os serviços](#escolhendo-os-serviços) |
 | `PROXY_PORT` | `80` | mude se a :80 estiver ocupada |
 | `PUBLIC_URL` | `http://localhost` | inclua a porta se mudar `PROXY_PORT` |
 | `SECRET_KEY` | preenchida | vazia => chave aleatória por worker => sessões quebram |
 | `CREATE_FAKE_DATA` | `TRUE` | cria dados fake + `admin/admin` |
 | `NEXT_PUBLIC_API_URL` | `http://localhost/api` | sem `/v1`; lida em runtime pelo `next dev` |
-| `GRAFANA_PASSWORD` | `admin123` | vira `GF_SECURITY_ADMIN_PASSWORD` |
 | `MCP_PORT` / `DOCS_PORT` | `8000` / `3001` | portas publicadas dos profiles `ai` / `docs` |
 | `MSGRAM_USER` / `MSGRAM_PASSWORD` | `admin` / `admin` | credenciais que o MCP usa na API do Service |
 
@@ -324,14 +318,11 @@ make test-service / test-front
 - **MCP não conecta** (`curl http://localhost:8000/mcp` recusa conexão): o
   `service` precisa estar **healthy** antes do `ai` subir; confira se o
   profile `ai` está marcado (`make select` ou `COMPOSE_PROFILES` no `.env`).
-- **O serviço de banco não pode ser renomeado**: o datasource do Grafana
-  (`MeasureSoftGram-Service/grafana/provisioning/datasources/measuresoftgram.yml`)
-  tem `url: db:5432` hardcoded.
 
 ## Notas
 
-- Nenhum arquivo dos submódulos é modificado por este repo — ele só lê os
-  `Dockerfile.dev` e `grafana/{provisioning,dashboards}` do Service, e
-  monta o código dos demais submódulos por cima de imagens base para dev.
+- Nenhum arquivo dos submódulos é modificado por este repo — ele só lê o
+  `Dockerfile.dev` do Service e monta o código dos demais submódulos por
+  cima de imagens base para dev.
 - Não há Redis/Celery: o agendamento é `django-apscheduler` in-process com
   advisory lock no Postgres.
