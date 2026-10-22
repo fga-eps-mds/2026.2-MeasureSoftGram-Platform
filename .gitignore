@@ -3,3 +3,19 @@
 !/workspace/.gitkeep
 *.log
 .DS_Store
+
+# documentacao local
+/docs/
+
+# arquivos de build
+build/
+dist/
+out/
+.next/
+*.egg-info/
+__pycache__/
+*.pyc
+node_modules/
+
+# configuracao local de ferramentas (pode ter tokens)
+.mcp.json
