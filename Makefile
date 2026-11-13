@@ -1,10 +1,12 @@
 SHELL := /bin/bash
 DC := docker compose
+DC_E2E := docker compose -p msgram-e2e -f docker-compose.yml -f docker-compose.e2e.yml --profile front
 
 .DEFAULT_GOAL := help
 .PHONY: help select up down restart clean logs ps smoke \
         seed grant-access set-github-token migrate superuser shell-service \
-        cli action-test plugin test-service test-front
+        cli action-test plugin test-service test-front \
+        e2e-up e2e-test e2e-down
 
 help: ## Lista os alvos
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | sort | \
@@ -66,3 +68,12 @@ test-service: ## Suite do Service dentro do container
 
 test-front: ## Suite do Front dentro do container
 	$(DC) exec front pnpm test
+
+e2e-up: ## Sobe a stack do E2E de sistema (build do Front, seed fixo, fake-gitlab) e espera ficar saudavel
+	$(DC_E2E) up -d --build --wait --wait-timeout 600
+
+e2e-test: ## Roda a suite Playwright de e2e/ contra http://localhost (stack do e2e-up no ar)
+	cd e2e && npm ci && npx playwright install chromium && npm test
+
+e2e-down: ## Derruba a stack do E2E e apaga os volumes
+	$(DC_E2E) down -v

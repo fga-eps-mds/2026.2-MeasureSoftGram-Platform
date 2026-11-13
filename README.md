@@ -22,6 +22,7 @@ um submódulo, o serviço correspondente recarrega sozinho, sem rebuild.
 - [Variáveis (`.env`)](#variáveis-env)
 - [CLI, Action e Plugin](#cli-action-e-plugin)
 - [Comandos úteis](#comandos-úteis)
+- [E2E de sistema](#e2e-de-sistema)
 - [Troubleshooting](#troubleshooting)
 - [Notas](#notas)
 
@@ -274,6 +275,27 @@ make action-test                     # replaya os workflows do Action com act
 make plugin ARGS="npm install"       # container do Plugin
 make test-service / test-front
 ```
+
+## E2E de sistema
+
+Suíte Playwright em [`e2e/`](e2e/) contra a stack de verdade (Front buildado, Service, Postgres e um
+GitLab de mentira), sem nenhuma API simulada. Sobe à parte do dev (`docker-compose.e2e.yml`, projeto
+`msgram-e2e`, banco descartável) e precisa da porta 80 livre: pare a stack de dev antes (`make down`).
+
+```bash
+git submodule update --remote MeasureSoftGram-Front MeasureSoftGram-Service   # develop de cada um
+make e2e-up      # build + migrate + seed_e2e; espera tudo ficar saudável (~3 min na 1a vez)
+make e2e-test    # roda a suíte (Node 20+); relatório em e2e/playwright-report
+make e2e-down    # derruba e apaga o banco
+```
+
+- Usuário do seed: `e2e` / `e2e-senha` (mude com `E2E_USERNAME`, `E2E_EMAIL`, `E2E_PASSWORD` no `make e2e-up`).
+  Dados fixos: `seed_e2e` do Service (organização `E2E Org`, produto `E2E Produto`, repositório `e2e-repo`).
+- O Service fala com `docker/fake-gitlab/server.py` (`GITLAB_BASE_URL=http://fake-gitlab:8929`): JSON fixo
+  com o usuário `e2e-gitlab`, o grupo `e2e-grupo` e o projeto `e2e-grupo/e2e-projeto`.
+- A suíte pode rodar várias vezes na mesma stack: o que ela cria tem nome e datas únicos.
+- No CI: `.github/workflows/e2e-system.yml` (push, noturno e manual), com o relatório como artefato.
+  Esses resultados não entram no comentário por critério que o Front publica nas issues.
 
 ## Troubleshooting
 

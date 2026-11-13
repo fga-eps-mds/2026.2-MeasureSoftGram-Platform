@@ -1,0 +1,11 @@
+{
+  "name": "msgram-e2e-sistema",
+  "private": true,
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.65.0",
+    "@types/node": "^22.10.0"
+  }
+}

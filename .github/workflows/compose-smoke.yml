@@ -16,7 +16,10 @@ jobs:
           submodules: recursive
 
       - name: Preparar .env
-        run: cp .env.example .env
+        # o migrate do Service exige uma chave Fernet; no CI basta uma descartavel
+        run: |
+          cp .env.example .env
+          echo "GITHUB_TOKEN_ENCRYPTION_KEYS=$(python3 -c 'import base64,os; print(base64.urlsafe_b64encode(os.urandom(32)).decode())')" >> .env
 
       - name: Build
         run: docker compose build
