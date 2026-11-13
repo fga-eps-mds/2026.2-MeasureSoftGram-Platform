@@ -1,0 +1,117 @@
+# ============================================================
+# E2E de sistema: Front buildado + Service sem hot reload + Postgres
+# descartavel + fake-gitlab, atras do mesmo proxy nginx (http://localhost).
+# Fica por cima do docker-compose.yml, sem mexer no fluxo de dev:
+#
+#   make e2e-up     (sobe e espera ficar saudavel)
+#   make e2e-test   (roda a suite Playwright de e2e/)
+#   make e2e-down   (derruba e apaga os volumes)
+#
+# Projeto proprio (-p msgram-e2e) e container_name proprios: nao reaproveita
+# volumes nem imagens do dev. Nao le nada do .env que mude o comportamento:
+# tudo que importa esta fixo abaixo. A porta 80 precisa estar livre.
+# ============================================================
+
+services:
+  db:
+    container_name: e2e-db
+    ports: !reset []
+    # banco descartavel: nada em volume, some no down
+    volumes: !reset []
+    tmpfs:
+      - /var/lib/postgresql
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    restart: "no"
+
+  service:
+    container_name: e2e-service
+    # imagem de producao do submodulo (codigo copiado, gunicorn, sem reload)
+    build:
+      context: ./MeasureSoftGram-Service
+      dockerfile: Dockerfile
+    volumes: !reset []
+    # migra, semeia os dados fixos do E2E e sobe o gunicorn do start_service.sh
+    # (que migra de novo, sem custo, e pula o load_initial_data: o seed_e2e ja roda)
+    command:
+      - bash
+      - -c
+      - python3 manage.py migrate --noinput && python3 manage.py seed_e2e && exec ./start_service.sh
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.dev
+      SECRET_KEY: e2e-secret-key-somente-para-teste
+      CREATE_FAKE_DATA: "FALSE"
+      RUN_LOAD_INITIAL_DATA: "false"
+      AMBIENT_TEST_OR_DEV: "TRUE"
+      ALLOWED_HOSTS: localhost,127.0.0.1,service,proxy
+      CSRF_TRUSTED_ORIGINS: http://localhost
+      FRONTEND_DEV_URL: http://localhost
+      FRONTEND_PROD_URL: http://localhost
+      LOGIN_REDIRECT_URL: http://localhost/
+      GITHUB_CLIENT_ID: ""
+      GITHUB_SECRET: ""
+      GITHUB_TOKEN: ""
+      GITLAB_CLIENT_ID: e2e-gitlab
+      GITLAB_SECRET: e2e-gitlab-secret
+      GITLAB_BASE_URL: http://fake-gitlab:8929
+      # sem rota no fake: qualquer chamada ao GitHub falha rapido em vez de sair para a internet
+      GITHUB_API_URL: http://fake-gitlab:8929/github
+      # chave Fernet de teste (so cifra os tokens do fake-gitlab)
+      GITHUB_TOKEN_ENCRYPTION_KEYS: hnWUYuqAIicbNBH7J-a3zBh5C2Nu1RJsaU0p_ttZpwE=
+      POSTGRES_HOST: db
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      E2E_USERNAME: ${E2E_USERNAME:-e2e}
+      E2E_EMAIL: ${E2E_EMAIL:-e2e@msgram.local}
+      E2E_PASSWORD: ${E2E_PASSWORD:-e2e-senha}
+    depends_on:
+      fake-gitlab:
+        condition: service_healthy
+    restart: "no"
+
+  front:
+    container_name: e2e-front
+    # Dockerfile do submodulo: pnpm build + pnpm start. As NEXT_PUBLIC_* entram no bundle no build.
+    image: msgram-e2e-front
+    build:
+      context: ./MeasureSoftGram-Front
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost/api
+        SERVICE_URL: http://service:8080/api
+        NEXT_PUBLIC_LOGIN_REDIRECT_URL: http://localhost/
+        GITLAB_CLIENT_ID: e2e-gitlab
+    command: ["pnpm", "start"]
+    volumes: !reset []
+    ports: !reset []
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:3000/ || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 180s
+    restart: "no"
+
+  proxy:
+    container_name: e2e-proxy
+    ports: !override
+      - "80:80"
+    restart: "no"
+
+  # GitLab de mentira: JSON fixo nas rotas que o Service chama (docker/fake-gitlab/server.py)
+  fake-gitlab:
+    container_name: e2e-fake-gitlab
+    image: python:3.12-alpine
+    command: ["python", "/server.py"]
+    volumes:
+      - ./docker/fake-gitlab/server.py:/server.py:ro
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8929/health')"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+    profiles: ["front"]
+    networks: [msgram]

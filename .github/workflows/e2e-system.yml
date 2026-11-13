@@ -1,0 +1,64 @@
+name: e2e-system
+
+# E2E de sistema: Front buildado + Service + Postgres reais + fake-gitlab (docker-compose.e2e.yml),
+# com a suite Playwright de e2e/. Roda contra a develop atual do Front e do Service.
+on:
+  push:
+    branches: [main, develop]
+  schedule:
+    - cron: "0 6 * * *" # 03:00 em Brasília
+  workflow_dispatch:
+
+concurrency:
+  group: e2e-system-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      DC: docker compose -p msgram-e2e -f docker-compose.yml -f docker-compose.e2e.yml --profile front
+    steps:
+      - uses: actions/checkout@v4
+
+      # só os dois submódulos que a stack usa, já na develop de cada um
+      - name: Submódulos Front e Service na develop
+        run: |
+          git submodule update --init MeasureSoftGram-Front MeasureSoftGram-Service
+          git submodule update --remote MeasureSoftGram-Front MeasureSoftGram-Service
+          git submodule status MeasureSoftGram-Front MeasureSoftGram-Service
+
+      - name: Up (build + espera ficar saudável)
+        run: $DC up -d --build --wait --wait-timeout 600
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: e2e/package-lock.json
+
+      - name: Playwright
+        working-directory: e2e
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+          npx playwright test
+
+      - name: Relatório do Playwright
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-system-report
+          path: |
+            e2e/playwright-report/
+            e2e/test-results/
+          retention-days: 14
+
+      - name: Logs (em caso de falha)
+        if: failure()
+        run: $DC logs --no-color
+
+      - name: Down
+        if: always()
+        run: $DC down -v
