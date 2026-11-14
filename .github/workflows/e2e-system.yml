@@ -1,16 +1,35 @@
 name: e2e-system
 
 # E2E de sistema: Front buildado + Service + Postgres reais + fake-gitlab (docker-compose.e2e.yml),
-# com a suite Playwright de e2e/. Roda contra a develop atual do Front e do Service.
+# com a suite Playwright de e2e/. Roda contra a develop do Front e do Service, ou contra os refs recebidos:
+# o Front e o Service chamam este workflow (workflow_call) a cada merge na develop deles.
 on:
   push:
     branches: [main, develop]
   schedule:
     - cron: "0 6 * * *" # 03:00 em Brasília
   workflow_dispatch:
+    inputs:
+      front_ref:
+        description: Branch ou commit do Front
+        type: string
+        default: develop
+      service_ref:
+        description: Branch ou commit do Service
+        type: string
+        default: develop
+  workflow_call:
+    inputs:
+      front_ref:
+        type: string
+        default: develop
+      service_ref:
+        type: string
+        default: develop
 
+# github.repository: a chamada do Front não cancela a do Service (nem a do Platform)
 concurrency:
-  group: e2e-system-${{ github.ref }}
+  group: e2e-system-${{ github.repository }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -20,13 +39,21 @@ jobs:
     env:
       DC: docker compose -p msgram-e2e -f docker-compose.yml -f docker-compose.e2e.yml --profile front
     steps:
+      # chamado por outro repositório, o checkout padrão pegaria o repositório de quem chamou
       - uses: actions/checkout@v4
+        with:
+          repository: fga-eps-mds/2026.2-MeasureSoftGram-Platform
+          ref: ${{ github.repository == 'fga-eps-mds/2026.2-MeasureSoftGram-Platform' && github.ref || 'main' }}
 
-      # só os dois submódulos que a stack usa, já na develop de cada um
-      - name: Submódulos Front e Service na develop
+      # só os dois submódulos que a stack usa, no ref pedido (sem entrada, na develop de cada um)
+      - name: Submódulos Front e Service
+        env:
+          FRONT_REF: ${{ inputs.front_ref || 'develop' }}
+          SERVICE_REF: ${{ inputs.service_ref || 'develop' }}
         run: |
           git submodule update --init MeasureSoftGram-Front MeasureSoftGram-Service
-          git submodule update --remote MeasureSoftGram-Front MeasureSoftGram-Service
+          git -C MeasureSoftGram-Front fetch origin "$FRONT_REF" && git -C MeasureSoftGram-Front checkout FETCH_HEAD
+          git -C MeasureSoftGram-Service fetch origin "$SERVICE_REF" && git -C MeasureSoftGram-Service checkout FETCH_HEAD
           git submodule status MeasureSoftGram-Front MeasureSoftGram-Service
 
       - name: Up (build + espera ficar saudável)
