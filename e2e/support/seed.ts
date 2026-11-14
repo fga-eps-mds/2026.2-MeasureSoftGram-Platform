@@ -23,15 +23,24 @@ export async function apiLogin(request: APIRequestContext): Promise<string> {
   return (await response.json()).key;
 }
 
-/** Guarda a sessão como o signInWithCredentials do Front: token, provider e o início da sessão. */
+/** Os cookies da sessão do Front (src/shared/server/auth/cookies.ts); só o servidor do Next os lê. */
+export const SESSION_COOKIES = { token: 'msgram_token', provider: 'msgram_provider', loginAt: 'msgram_login_at' };
+
+/** Grava a sessão nos mesmos cookies que o login do Front grava. */
 export async function useToken(page: Page, token: string): Promise<void> {
-  await page.addInitScript((key) => {
-    if (sessionStorage.getItem('e2e-sessao')) return; // só na primeira página: o logout tem de valer
-    sessionStorage.setItem('e2e-sessao', '1');
-    localStorage.setItem('token', JSON.stringify(key));
-    localStorage.setItem('provider', JSON.stringify('credentials'));
-    localStorage.setItem('login_timestamp', Date.now().toString());
-  }, token);
+  const url = process.env.E2E_BASE_URL ?? 'http://localhost'; // o mesmo baseURL do playwright.config.ts
+  await page.context().addCookies(
+    [
+      [SESSION_COOKIES.token, token],
+      [SESSION_COOKIES.provider, 'credentials'],
+      [SESSION_COOKIES.loginAt, Date.now().toString()]
+    ].map(([name, value]) => ({ name, value, url }))
+  );
+}
+
+/** Valor de um cookie da página, ou null sem ele. */
+export async function cookieValue(page: Page, name: string): Promise<string | null> {
+  return (await page.context().cookies()).find((cookie) => cookie.name === name)?.value || null;
 }
 
 /** Entra com o usuário do seed e espera a home. */

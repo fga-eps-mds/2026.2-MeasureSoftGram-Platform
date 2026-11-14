@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { apiLogin, login, SEED } from '../support/seed';
+import { apiLogin, cookieValue, login, SEED, SESSION_COOKIES } from '../support/seed';
 
 test('@SIS-01 login com usuário e senha do seed e logout pelo menu do usuário', async ({ page }) => {
   const token = await login(page);
@@ -9,12 +9,12 @@ test('@SIS-01 login com usuário e senha do seed e logout pelo menu do usuário'
   await expect(page.getByRole('combobox').filter({ hasText: SEED.organization })).toBeVisible();
 
   await page.getByText(SEED.username, { exact: true }).click();
-  const logout = page.waitForResponse((r) => r.url().endsWith('/api/v1/accounts/logout/'));
+  const logout = page.waitForResponse((r) => r.url().endsWith('/bff/session') && r.request().method() === 'DELETE');
   await page.getByRole('menuitem', { name: /Finalizar Sessão|Log out/ }).click();
   expect((await logout).ok()).toBeTruthy();
 
   await expect(page.getByText('Volte logo para acompanhar seus produtos!')).toBeVisible();
-  await expect.poll(() => page.evaluate(() => localStorage.getItem('token'))).toBeNull();
+  await expect.poll(() => cookieValue(page, SESSION_COOKIES.token)).toBeNull();
 
   // o Service invalidou o token
   const after = await page.request.get('/api/v1/accounts/', { headers: { Authorization: `Token ${token}` } });
