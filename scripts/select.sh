@@ -8,12 +8,13 @@ cd "$(dirname "$0")/.."
 
 [ -f .env ] || { echo "==> Criando .env a partir de .env.example"; cp .env.example .env; }
 
-ALL=(service front ai docs)
+ALL=(service front ai docs i18n)
 declare -A LABEL=(
   [service]="API Django (hot reload)"
   [front]="Next.js — Front (hot reload)"
   [ai]="Servidor MCP / AI (hot reload)"
   [docs]="Documentacao Docusaurus (hot reload)"
+  [i18n]="Weblate — traducoes (http://localhost:8090)"
 )
 
 current="$(grep -E '^COMPOSE_PROFILES=' .env | head -1 | cut -d= -f2- | tr -d '\r"')"
