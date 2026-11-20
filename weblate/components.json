@@ -1,0 +1,113 @@
+{
+  "defaults": {
+    "vcs": "git",
+    "branch": "develop",
+    "push_on_commit": false,
+    "commit_pending_age": 24,
+    "edit_template": false,
+    "manage_units": false,
+    "commit_message": "chore(i18n): atualiza as traduções de {{ language_name }} ({{ component_name }})\n\nTraduzido: {{ stats.translated_percent }}% ({{ stats.translated }} de {{ stats.all }} textos).\nGerado pelo Weblate: {{ url }}",
+    "add_message": "chore(i18n): adiciona o idioma {{ language_name }} ({{ component_name }})",
+    "delete_message": "chore(i18n): remove o idioma {{ language_name }} ({{ component_name }})",
+    "merge_message": "chore(i18n): incorpora o develop no Weblate ({{ component_name }})",
+    "addon_message": "chore(i18n): atualiza arquivos de tradução ({{ addon_name }}, {{ component_name }})"
+  },
+  "repositories": {
+    "front": {
+      "repo": "https://github.com/fga-eps-mds/2026.2-MeasureSoftGram-Front.git",
+      "addons": [
+        {
+          "name": "weblate.git.squash",
+          "configuration": {
+            "squash": "language"
+          }
+        }
+      ]
+    },
+    "cli": {
+      "repo": "https://github.com/fga-eps-mds/2026.2-MeasureSoftGram-CLI.git",
+      "addons": [
+        {
+          "name": "weblate.git.squash",
+          "configuration": {
+            "squash": "language"
+          }
+        },
+        {
+          "name": "weblate.gettext.msgmerge",
+          "configuration": {}
+        }
+      ]
+    },
+    "plugin": {
+      "repo": "https://github.com/fga-eps-mds/2026.2-MeasureSoftGram-Plugin.git",
+      "addons": [
+        {
+          "name": "weblate.git.squash",
+          "configuration": {
+            "squash": "language"
+          }
+        }
+      ]
+    }
+  },
+  "components": [
+    {
+      "repository": "front",
+      "slug": "front-{namespace}",
+      "name": "Front · {namespace}",
+      "namespaces_from": "MeasureSoftGram-Front/public/locales/en/*.json",
+      "main_namespace": "translation",
+      "file_format": "i18nextv4",
+      "filemask": "public/locales/*/{namespace}.json",
+      "template": "public/locales/en/{namespace}.json",
+      "language_code_style": "posix",
+      "file_format_params": {
+        "json_indent": 2,
+        "json_indent_style": "spaces",
+        "json_sort_keys": false
+      }
+    },
+    {
+      "repository": "cli",
+      "slug": "cli",
+      "name": "CLI",
+      "file_format": "po",
+      "filemask": "src/cli/locale/*/LC_MESSAGES/msgram.po",
+      "new_base": "src/cli/locale/msgram.pot",
+      "language_code_style": "posix",
+      "file_format_params": {
+        "po_line_wrap": 77,
+        "po_keep_previous": true
+      }
+    },
+    {
+      "repository": "plugin",
+      "slug": "plugin-manifest",
+      "name": "Plugin · manifesto",
+      "file_format": "json",
+      "filemask": "package.nls.*.json",
+      "template": "package.nls.json",
+      "language_code_style": "bcp_lower",
+      "file_format_params": {
+        "json_indent": 2,
+        "json_indent_style": "spaces",
+        "json_sort_keys": false
+      }
+    },
+    {
+      "repository": "plugin",
+      "slug": "plugin-runtime",
+      "name": "Plugin · extensão e painel",
+      "file_format": "json",
+      "filemask": "l10n/bundle.l10n.*.json",
+      "template": "l10n/bundle.l10n.json",
+      "language_code_style": "bcp_lower",
+      "file_format_params": {
+        "json_indent": 2,
+        "json_indent_style": "spaces",
+        "json_sort_keys": false
+      }
+    }
+  ]
+}
