@@ -23,6 +23,7 @@ um submódulo, o serviço correspondente recarrega sozinho, sem rebuild.
 - [CLI, Action e Plugin](#cli-action-e-plugin)
 - [Comandos úteis](#comandos-úteis)
 - [E2E de sistema](#e2e-de-sistema)
+- [Traduções (Weblate)](#traduções-weblate)
 - [Troubleshooting](#troubleshooting)
 - [Notas](#notas)
 
@@ -38,6 +39,7 @@ um submódulo, o serviço correspondente recarrega sozinho, sem rebuild.
 
    http://localhost:3001  ─────────────►  docs (Docusaurus)     [profile docs]
    http://localhost:8000/mcp ───────────►  ai (servidor MCP)     [profile ai]
+   http://localhost:8090  ─────────────►  weblate (traduções)   [profile i18n]
 ```
 
 | Submódulo | Papel | Sobe como |
@@ -95,6 +97,7 @@ Você não precisa subir a stack inteira. A variável `COMPOSE_PROFILES` do
   2) [x] front    Next.js — Front (hot reload)
   3) [ ] ai       Servidor MCP / AI (hot reload)
   4) [ ] docs     Documentacao Docusaurus (hot reload)
+  5) [ ] i18n     Weblate — traducoes (http://localhost:8090)
 ```
 
 | Profile | Sobe junto | URL | Hot reload |
@@ -103,6 +106,7 @@ Você não precisa subir a stack inteira. A variável `COMPOSE_PROFILES` do
 | `front` | service, db, proxy | http://localhost | sim |
 | `ai` | service, db | http://localhost:8000/mcp | sim |
 | `docs` | — | http://localhost:3001 | sim |
+| `i18n` | db | http://localhost:8090 | — |
 
 Marcar `front` já traz `service`, `db` e `proxy` junto (Front depende de
 Service). `docs` é independente — sobe sozinho, sem banco.
@@ -148,6 +152,7 @@ Quando **não** basta salvar o arquivo:
 | Documentação (profile `docs`) | http://localhost:3001 |
 | Servidor MCP (profile `ai`) | http://localhost:8000/mcp |
 | MCP Inspector (profile `ai`) | http://localhost:6274 |
+| Weblate (profile `i18n`) | http://localhost:8090 |
 
 ## Credenciais do seed
 
@@ -296,6 +301,43 @@ make e2e-down    # derruba e apaga o banco
 - A suíte pode rodar várias vezes na mesma stack: o que ela cria tem nome e datas únicos.
 - No CI: `.github/workflows/e2e-system.yml` (push, noturno e manual), com o relatório como artefato.
   Esses resultados não entram no comentário por critério que o Front publica nas issues.
+
+## Traduções (Weblate)
+
+Front, CLI e Plugin são traduzidos num **Weblate self-hosted** (profile
+`i18n`). Cada repositório guarda os próprios arquivos de tradução; o Weblate
+tem um projeto `measuresoftgram` com os componentes de cada repositório, e
+glossário e memória de tradução compartilhados entre eles. Idioma-fonte:
+inglês; primeiro idioma-alvo: português do Brasil.
+
+| Repositório | Componente(s) | Arquivos |
+|---|---|---|
+| Front | `front-<namespace>` (um por namespace do i18next) | `public/locales/{en,pt}/*.json` |
+| CLI | `cli` | `src/cli/locale/msgram.pot`, `pt_BR/LC_MESSAGES/msgram.po` |
+| Plugin | `plugin-manifest`, `plugin-runtime` | `package.nls*.json`, `l10n/bundle.l10n*.json` |
+
+Configuração como código, na pasta [`weblate/`](weblate/):
+
+- `project.json`: projeto, aliases de idioma (`pt` e `pt-br` viram `pt_BR`) e memória compartilhada;
+- `components.json`: repositório, máscara de arquivos, formato e addons de cada componente (os do Front são gerados a partir dos namespaces do submódulo);
+- `glossary.csv`: termos do domínio (TSQMI, característica, medida, métrica…);
+- `bootstrap.py`: aplica tudo pela API do Weblate. É idempotente, então pode rodar de novo à vontade.
+
+```bash
+make select            # marque "i18n" (ou COMPOSE_PROFILES=...,i18n no .env)
+docker compose up -d   # o primeiro start do Weblate leva alguns minutos
+make weblate-init      # cria/atualiza projeto, componentes e glossário
+make weblate-pull      # puxa o develop dos repositórios agora (senão, 1x por dia)
+```
+
+Login em http://localhost:8090 com `admin` / `WEBLATE_ADMIN_PASSWORD`.
+
+- **Componentes pulados:** o `make weblate-init` pula o componente cujo
+  repositório ainda não tem os arquivos de tradução no `develop`. Rode de novo
+  depois do merge.
+- **Por enquanto só local:** o Weblate lê o `develop` dos repositórios, mas
+  ainda não publica as traduções. O envio por PR (conta-bot do GitHub e branch
+  `weblate/translations`) é configurado na etapa final do épico MSG37.
 
 ## Troubleshooting
 

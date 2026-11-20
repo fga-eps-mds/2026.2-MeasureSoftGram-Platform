@@ -2,11 +2,15 @@ SHELL := /bin/bash
 DC := docker compose
 DC_E2E := docker compose -p msgram-e2e -f docker-compose.yml -f docker-compose.e2e.yml --profile front
 
+WEBLATE_URL ?= http://localhost:$${WEBLATE_PORT:-8090}
+WEBLATE_TOKEN = $$($(DC) exec -T weblate weblate shell -c 'from rest_framework.authtoken.models import Token; from weblate.auth.models import User; print(Token.objects.get_or_create(user=User.objects.get(username="admin"))[0].key)' | tail -1)
+WEBLATE_ENV = WEBLATE_URL=$(WEBLATE_URL) WEBLATE_API_TOKEN=$(WEBLATE_TOKEN)
+
 .DEFAULT_GOAL := help
 .PHONY: help select up down restart clean logs ps smoke \
         seed grant-access set-github-token migrate superuser shell-service \
         cli action-test plugin test-service test-front \
-        e2e-up e2e-test e2e-down
+        e2e-up e2e-test e2e-down weblate-init weblate-pull
 
 help: ## Lista os alvos
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | sort | \
@@ -77,3 +81,9 @@ e2e-test: ## Roda a suite Playwright de e2e/ contra http://localhost (stack do e
 
 e2e-down: ## Derruba a stack do E2E e apaga os volumes
 	$(DC_E2E) down -v
+
+weblate-init: ## Cria/atualiza no Weblate o projeto, os componentes e o glossario de weblate/ (idempotente)
+	$(WEBLATE_ENV) python3 weblate/bootstrap.py init
+
+weblate-pull: ## Puxa o develop dos repositorios para o Weblate
+	$(WEBLATE_ENV) python3 weblate/bootstrap.py pull

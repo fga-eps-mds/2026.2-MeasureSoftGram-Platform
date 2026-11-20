@@ -1,0 +1,25 @@
+source,target,developer_comments
+MeasureSoftGram,MeasureSoftGram,Nome do produto: não traduzir.
+msgram,msgram,Nome da CLI e do pacote: não traduzir.
+TSQMI,TSQMI,"Total Software Quality Measurement Index, indicador agregado do modelo: não traduzir a sigla."
+quality model,modelo de qualidade,
+characteristic,característica,Nível do modelo de qualidade acima da subcaracterística (ex.: Reliability → Confiabilidade).
+subcharacteristic,subcaracterística,Nível do modelo entre característica e medida.
+measure,medida,Valor calculado a partir de métricas (não confundir com métrica).
+metric,métrica,Dado bruto coletado de SonarQube/GitHub.
+weight,peso,Peso de uma entidade de qualidade no cálculo.
+balance matrix,matriz de balanceamento,
+quality goal,meta de qualidade,
+release,release,Termo usado como está no produto em português.
+pre-config,pré-configuração,
+product,produto,
+repository,repositório,
+organization,organização,
+dashboard,dashboard,
+threshold,limiar,
+technical debt,dívida técnica,
+maintainability,manutenibilidade,
+reliability,confiabilidade,
+security,segurança,
+SonarQube,SonarQube,Nome de ferramenta: não traduzir.
+GitHub Action,GitHub Action,Nome de ferramenta: não traduzir.

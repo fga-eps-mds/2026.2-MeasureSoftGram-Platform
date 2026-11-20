@@ -1,0 +1,12 @@
+{
+  "name": "MeasureSoftGram",
+  "slug": "measuresoftgram",
+  "web": "https://fga-eps-mds.github.io/2026.2-MeasureSoftGram-DOC/",
+  "instructions": "Idioma-fonte: inglês. Use o glossário do projeto para os termos do modelo de qualidade (TSQMI, característica, subcaracterística, medida, métrica). Mantenha placeholders como {{name}}, {name} e %s exatamente como no original.",
+  "language_aliases": "pt:pt_BR,pt-br:pt_BR,pt_br:pt_BR",
+  "use_shared_tm": true,
+  "contribute_shared_tm": true,
+  "source_language": "en",
+  "translation_languages": ["pt_BR"],
+  "glossary": "glossary.csv"
+}
