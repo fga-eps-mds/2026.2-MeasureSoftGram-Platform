@@ -252,6 +252,7 @@ services:
       PGHOST: db
       PGUSER: ${POSTGRES_USER:-postgres}
       PGPASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      PGDATABASE: ${POSTGRES_DB:-postgres}
       WEBLATE_DB: ${WEBLATE_POSTGRES_DB:-weblate}
     command:
       - sh
