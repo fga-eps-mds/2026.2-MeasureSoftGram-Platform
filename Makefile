@@ -2,7 +2,9 @@ SHELL := /bin/bash
 DC := docker compose
 DC_E2E := docker compose -p msgram-e2e -f docker-compose.yml -f docker-compose.e2e.yml --profile front
 
-WEBLATE_URL ?= http://localhost:$${WEBLATE_PORT:-8090}
+WEBLATE_PORT ?= $(or $(shell sed -n 's/^WEBLATE_PORT=//p' .env 2>/dev/null | tail -1),8090)
+WEBLATE_URL ?= http://localhost:$(WEBLATE_PORT)
+WEBLATE_WAIT_TRIES ?= 120
 WEBLATE_TOKEN = $$($(DC) exec -T weblate weblate shell -c 'from rest_framework.authtoken.models import Token; from weblate.auth.models import User; print(Token.objects.get_or_create(user=User.objects.get(username="admin"))[0].key)' | tail -1)
 WEBLATE_ENV = WEBLATE_URL=$(WEBLATE_URL) WEBLATE_API_TOKEN=$(WEBLATE_TOKEN)
 
@@ -83,7 +85,11 @@ e2e-down: ## Derruba a stack do E2E e apaga os volumes
 	$(DC_E2E) down -v
 
 weblate-wait: ## Espera o Weblate responder em /healthz/ (o primeiro start leva alguns minutos)
-	@until curl -fsS -o /dev/null $(WEBLATE_URL)/healthz/; do echo "aguardando o Weblate ficar pronto..."; sleep 5; done
+	@for i in $$(seq $(WEBLATE_WAIT_TRIES)); do \
+	  curl -fsS -o /dev/null $(WEBLATE_URL)/healthz/ && exit 0; \
+	  echo "aguardando o Weblate ficar pronto em $(WEBLATE_URL)..."; sleep 5; \
+	done; \
+	echo "O Weblate nao respondeu em $(WEBLATE_URL). Confira COMPOSE_PROFILES=i18n e docker compose logs weblate."; exit 1
 
 weblate-init: weblate-wait ## Cria/atualiza no Weblate o projeto, os componentes e o glossario de weblate/ (idempotente)
 	$(WEBLATE_ENV) python3 weblate/bootstrap.py init
