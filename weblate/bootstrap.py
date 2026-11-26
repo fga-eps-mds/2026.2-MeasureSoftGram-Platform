@@ -98,19 +98,11 @@ def load(name: str) -> dict:
 
 def expand_components(spec: dict) -> list[dict]:
     defaults, repos = spec["defaults"], spec["repositories"]
-    owners: dict[str, str] = {}
     result = []
 
     def add(item: dict, repository: str) -> None:
-        item = {**defaults, **item}
-        if repository in owners:
-            item = {k: v for k, v in item.items() if k not in REPOSITORY_OPTIONS}
-            item.update(repo=f"weblate://{{project}}/{owners[repository]}", _addons=[])
-        else:
-            owners[repository] = item["slug"]
-            repo = repos[repository]
-            item.update(repo=repo["repo"], _addons=repo["addons"])
-        result.append(item)
+        repo = repos[repository]
+        result.append({**defaults, **item, "repo": repo["repo"], "_addons": repo["addons"]})
 
     for comp in spec["components"]:
         if "namespaces_from" not in comp:
@@ -186,12 +178,20 @@ def ensure_addons(api: Weblate, project: str, component: str, addons: list[dict]
             print(f"   == addon {addon['name']} reconfigurado")
 
 
+def link_to_owner(comp: dict, project: str, owner: str) -> dict:
+    linked = {k: v for k, v in comp.items() if k not in REPOSITORY_OPTIONS}
+    linked["repo"] = f"weblate://{project}/{owner}"
+    return linked
+
+
 def ensure_components(api: Weblate, project: str) -> list[str]:
     created, skipped = [], []
+    owners: dict[str, str] = {}
     for comp in expand_components(load("components.json")):
         addons = comp.pop("_addons")
-        comp.pop("repository")
-        comp["repo"] = comp["repo"].format(project=project)
+        repository = comp.pop("repository")
+        if repository in owners:
+            comp, addons = link_to_owner(comp, project, owners[repository]), []
         slug = comp["slug"]
         path = f"components/{project}/{slug}/"
         try:
@@ -207,6 +207,7 @@ def ensure_components(api: Weblate, project: str) -> list[str]:
             print(f"!! componente {slug} pulado: {exc}")
             skipped.append(slug)
             continue
+        owners.setdefault(repository, slug)
         created.append(slug)
     if skipped:
         print(f"\nComponentes pulados (rode `make weblate-init` de novo depois do merge): {', '.join(skipped)}")
