@@ -280,7 +280,7 @@ services:
       - weblate_cache:/app/cache
     environment:
       WEBLATE_SITE_TITLE: MeasureSoftGram Weblate
-      WEBLATE_SITE_DOMAIN: ${WEBLATE_SITE_DOMAIN:-localhost:8090}
+      WEBLATE_SITE_DOMAIN: ${WEBLATE_SITE_DOMAIN:-localhost:${WEBLATE_PORT:-8090}}
       WEBLATE_ENABLE_HTTPS: ${WEBLATE_ENABLE_HTTPS:-0}
       WEBLATE_ADMIN_NAME: ${WEBLATE_ADMIN_NAME:-Weblate Admin}
       WEBLATE_ADMIN_EMAIL: ${WEBLATE_ADMIN_EMAIL:-weblate@localhost}
