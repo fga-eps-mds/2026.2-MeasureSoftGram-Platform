@@ -21,6 +21,8 @@ volumes:
   front_node_modules:
   front_next_cache:
   docs_node_modules:
+  weblate_data:
+  weblate_cache:
 
 networks:
   msgram:
@@ -44,7 +46,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
-    profiles: ["service", "front", "ai"]
+    profiles: ["service", "front", "ai", "i18n"]
     networks: [msgram]
     restart: unless-stopped
 
@@ -243,3 +245,67 @@ services:
       - "${DOCS_PORT:-3001}:3001"
     profiles: ["docs"]
     networks: [msgram]
+
+  weblate-db-init:
+    image: postgres:18-alpine
+    environment:
+      PGHOST: db
+      PGUSER: ${POSTGRES_USER:-postgres}
+      PGPASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      PGDATABASE: ${POSTGRES_DB:-postgres}
+      WEBLATE_DB: ${WEBLATE_POSTGRES_DB:-weblate}
+    command:
+      - sh
+      - -c
+      - psql -tAc "SELECT 1 FROM pg_database WHERE datname='$$WEBLATE_DB'" | grep -q 1 || createdb "$$WEBLATE_DB"
+    depends_on:
+      db:
+        condition: service_healthy
+    profiles: ["i18n"]
+    networks: [msgram]
+
+  weblate-cache:
+    container_name: weblate-cache
+    image: valkey/valkey:8-alpine
+    command: ["valkey-server", "--save", "", "--appendonly", "no"]
+    profiles: ["i18n"]
+    networks: [msgram]
+    restart: unless-stopped
+
+  weblate:
+    container_name: weblate
+    image: weblate/weblate:5
+    volumes:
+      - weblate_data:/app/data
+      - weblate_cache:/app/cache
+    environment:
+      WEBLATE_SITE_TITLE: MeasureSoftGram Weblate
+      WEBLATE_SITE_DOMAIN: ${WEBLATE_SITE_DOMAIN:-localhost:${WEBLATE_PORT:-8090}}
+      WEBLATE_ENABLE_HTTPS: ${WEBLATE_ENABLE_HTTPS:-0}
+      WEBLATE_ADMIN_NAME: ${WEBLATE_ADMIN_NAME:-Weblate Admin}
+      WEBLATE_ADMIN_EMAIL: ${WEBLATE_ADMIN_EMAIL:-weblate@localhost}
+      WEBLATE_ADMIN_PASSWORD: ${WEBLATE_ADMIN_PASSWORD:-admin}
+      WEBLATE_SERVER_EMAIL: ${WEBLATE_ADMIN_EMAIL:-weblate@localhost}
+      WEBLATE_DEFAULT_FROM_EMAIL: ${WEBLATE_ADMIN_EMAIL:-weblate@localhost}
+      WEBLATE_REGISTRATION_OPEN: ${WEBLATE_REGISTRATION_OPEN:-0}
+      WEBLATE_TIME_ZONE: America/Sao_Paulo
+      WEBLATE_EMAIL_BACKEND: ${WEBLATE_EMAIL_BACKEND:-django.core.mail.backends.console.EmailBackend}
+      WEBLATE_AUTO_UPDATE: "1"
+      WEBLATE_DEFAULT_AUTO_WATCH: "0"
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${WEBLATE_POSTGRES_DB:-weblate}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      REDIS_HOST: weblate-cache
+      REDIS_PORT: 6379
+    ports:
+      - "${WEBLATE_PORT:-8090}:8080"
+    depends_on:
+      weblate-db-init:
+        condition: service_completed_successfully
+      weblate-cache:
+        condition: service_started
+    profiles: ["i18n"]
+    networks: [msgram]
+    restart: unless-stopped
