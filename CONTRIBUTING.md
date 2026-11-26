@@ -33,3 +33,14 @@ Detalhes no [README](README.md).
 - `make clean && make up` sobe do zero sem erro.
 - `make smoke` passa (o CI `compose-smoke` roda o mesmo script).
 - Commits no imperativo; PR descreve o "porquê".
+
+## Políticas do projeto
+
+Valem para este repositório as mesmas políticas de todos os repositórios do MeasureSoftGram:
+
+- [Código de conduta](CODE_OF_CONDUCT.md)
+- [Como contribuir](https://fga-eps-mds.github.io/MeasureSoftGram-Docs/docs/como-contribuir/)
+- [Política de commits](https://fga-eps-mds.github.io/MeasureSoftGram-Docs/docs/politica-de-commits/)
+- [Política de branches](https://fga-eps-mds.github.io/MeasureSoftGram-Docs/docs/politica-de-branches/)
+
+O projeto é licenciado sob a [GNU AGPL v3](LICENSE), como os demais componentes.
