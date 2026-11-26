@@ -198,11 +198,11 @@ def ensure_components(api: Weblate, project: str) -> list[str]:
             else:
                 api.send("POST", f"projects/{project}/components/", comp)
                 print(f"++ componente {slug}")
+            ensure_addons(api, project, slug, addons)
         except ApiError as exc:
             print(f"!! componente {slug} pulado: {exc}")
             skipped.append(slug)
             continue
-        ensure_addons(api, project, slug, addons)
         created.append(slug)
     if skipped:
         print(f"\nComponentes pulados (rode `make weblate-init` de novo depois do merge): {', '.join(skipped)}")
