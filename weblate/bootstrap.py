@@ -121,7 +121,11 @@ def expand_components(spec: dict) -> list[dict]:
             print(f"!! nenhum namespace em {comp['namespaces_from']} (submodulo inicializado?)")
             continue
         main = comp.get("main_namespace", namespaces[0])
-        namespaces.remove(main)
+        if main in namespaces:
+            namespaces.remove(main)
+        else:
+            print(f"!! namespace principal {main} nao existe em {comp['namespaces_from']}; usando {namespaces[0]}")
+            main = namespaces.pop(0)
         for ns in [main, *namespaces]:
             item = {
                 key: (value.format(namespace=ns) if isinstance(value, str) else value)
