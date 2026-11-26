@@ -152,11 +152,15 @@ def loaded_translations(api: Weblate, project: str, component: str) -> list:
         time.sleep(3)
 
 
+def normalize_language(code: str) -> str:
+    return code.replace("-", "_").lower()
+
+
 def ensure_translation(api: Weblate, project: str, component: str, language: str) -> None:
     translations = loaded_translations(api, project, component)
     codes = {t["language_code"] for t in translations} | {t["language"]["code"] for t in translations}
-    base = language.replace("-", "_").split("_")[0].lower()
-    if any(code.replace("-", "_").split("_")[0].lower() == base for code in codes):
+    wanted = normalize_language(language)
+    if any(normalize_language(code) == wanted for code in codes):
         return
     try:
         api.send("POST", f"components/{project}/{component}/translations/", {"language_code": language})
