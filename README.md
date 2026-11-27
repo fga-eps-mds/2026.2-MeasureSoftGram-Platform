@@ -328,6 +328,7 @@ make select            # marque "i18n" (ou COMPOSE_PROFILES=...,i18n no .env)
 docker compose up -d   # o primeiro start do Weblate leva alguns minutos
 make weblate-init      # cria/atualiza projeto, componentes e glossário
 make weblate-pull      # puxa o develop dos repositórios agora (senão, 1x por dia)
+make weblate-push      # grava as traduções pendentes e abre/atualiza os PRs agora
 ```
 
 Login em http://localhost:8090 com `admin` / `WEBLATE_ADMIN_PASSWORD`.
@@ -335,9 +336,66 @@ Login em http://localhost:8090 com `admin` / `WEBLATE_ADMIN_PASSWORD`.
 - **Componentes pulados:** o `make weblate-init` pula o componente cujo
   repositório ainda não tem os arquivos de tradução no `develop`. Rode de novo
   depois do merge.
-- **Por enquanto só local:** o Weblate lê o `develop` dos repositórios, mas
-  ainda não publica as traduções. O envio por PR (conta-bot do GitHub e branch
-  `weblate/translations`) é configurado na etapa final do épico MSG37.
+- **Sem credencial do bot:** com `WEBLATE_GITHUB_TOKEN` vazio, o
+  `make weblate-init` cria os componentes só para leitura do `develop`, sem
+  publicar nada. Preencha o token e rode o `make weblate-init` de novo para
+  ligar a publicação.
+
+### Fluxo das traduções
+
+```
+código novo no develop ──► CI (i18n.yml) ──► PR i18n/template ──► develop
+                                                                   │ pull
+                                                                   ▼
+develop ◄── PR weblate/translations ◄── push ◄── tradução no Weblate
+```
+
+- **Template:** cada repositório tem um workflow `i18n.yml` que roda a cada
+  push no `develop`, extrai os textos do código e abre (ou atualiza) o PR
+  `i18n/template` quando há texto novo: `pnpm i18n:extract` no Front,
+  `make i18n-extract` (pybabel `extract` + `update`) na CLI e
+  `npm run l10n:export` no Plugin. O `test.yml` do Front (`pnpm i18n:check`)
+  e o do Plugin falham se o template versionado estiver desatualizado.
+- **Traduções:** o Weblate grava as traduções no `develop` local dele e faz
+  push na branch `weblate/translations` do repositório central, abrindo o PR
+  `weblate/translations` → `develop` (um commit por idioma). Isso acontece a
+  cada commit do Weblate (`push_on_commit`), que junta as alterações por até
+  24 h (`commit_pending_age`); o `make weblate-push` força na hora.
+
+### Conta-bot do GitHub
+
+O Weblate publica com uma conta-bot do GitHub, não com a conta de uma pessoa
+do time:
+
+1. Crie (ou reaproveite) a conta-bot e convide-a como colaboradora de Front,
+   CLI e Plugin.
+2. Na conta-bot, gere um **fine-grained PAT** com acesso só a esses três
+   repositórios e as permissões **Contents: Read and write** e
+   **Pull requests: Read and write**.
+3. Preencha no `.env` da Platform:
+
+   ```bash
+   WEBLATE_GITHUB_USERNAME=<login da conta-bot>
+   WEBLATE_GITHUB_TOKEN=<PAT fine-grained>
+   WEBLATE_GITHUB_HOST=api.github.com
+   ```
+
+4. Rode `docker compose up -d weblate` e `make weblate-init`.
+5. Cadastre o mesmo PAT como secret `WEBLATE_GITHUB_TOKEN` em Front, CLI e
+   Plugin. Os workflows `i18n.yml` usam esse token para abrir o PR do
+   template; sem ele usam o `GITHUB_TOKEN`, e o PR do template abre sem
+   disparar a CI (limitação do GitHub com PRs criados pelo `GITHUB_TOKEN`) e
+   exige "Allow GitHub Actions to create and approve pull requests" ligado
+   nas configurações de Actions do repositório.
+
+### Pendência: hospedagem permanente
+
+O Weblate do compose serve para desenvolvimento e testes: ele só fica no ar
+enquanto alguém mantém a stack rodando, e por isso não recebe webhooks do
+GitHub (atualiza pelo pull diário ou pelo `make weblate-pull`). Hospedar o
+Weblate num servidor público, com HTTPS, domínio próprio e webhooks dos
+repositórios apontando para `/hooks/github/`, ficou fora do escopo do épico
+MSG37 e está registrado como pendência de infraestrutura.
 
 ## Troubleshooting
 

@@ -12,13 +12,15 @@ from http.client import HTTPException
 from pathlib import Path
 from urllib import error, request
 
-USAGE = "uso: python3 weblate/bootstrap.py init|pull  (WEBLATE_URL e WEBLATE_API_TOKEN no ambiente)"
+ACTIONS = ("init", "pull", "push")
+USAGE = "uso: python3 weblate/bootstrap.py init|pull|push  (WEBLATE_URL e WEBLATE_API_TOKEN no ambiente)"
 
 READY_TIMEOUT = 600
 IMPORT_TIMEOUT = 120
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
+PUBLISH_OPTIONS = ("push", "push_branch")
 REPOSITORY_OPTIONS = {
     "vcs", "branch", "push", "push_branch", "push_on_commit", "commit_pending_age", "merge_style",
     "commit_message", "add_message", "delete_message", "merge_message", "addon_message",
@@ -96,13 +98,24 @@ def load(name: str) -> dict:
     return json.loads((HERE / name).read_text(encoding="utf-8"))
 
 
-def expand_components(spec: dict) -> list[dict]:
+def publishing_enabled() -> bool:
+    return os.environ.get("WEBLATE_PUBLISH", "") == "1"
+
+
+def local_only(comp: dict) -> dict:
+    return {**comp, **{k: "" for k in PUBLISH_OPTIONS}, "vcs": "git", "push_on_commit": False}
+
+
+def expand_components(spec: dict, publish: bool = True) -> list[dict]:
     defaults, repos = spec["defaults"], spec["repositories"]
     result = []
 
     def add(item: dict, repository: str) -> None:
         repo = repos[repository]
-        result.append({**defaults, **item, "repo": repo["repo"], "_addons": repo["addons"]})
+        comp = {**defaults, **item, "repo": repo["repo"], "_addons": repo["addons"]}
+        if "push" in repo:
+            comp["push"] = repo["push"]
+        result.append(comp if publish else local_only(comp))
 
     for comp in spec["components"]:
         if "namespaces_from" not in comp:
@@ -191,7 +204,10 @@ def link_to_owner(comp: dict, project: str, owner: str) -> dict:
 def ensure_components(api: Weblate, project: str) -> list[str]:
     created, skipped = [], []
     owners: dict[str, str] = {}
-    for comp in expand_components(load("components.json")):
+    publish = publishing_enabled()
+    if not publish:
+        print("!! WEBLATE_GITHUB_TOKEN vazio: componentes so leem o develop, sem PR de traducoes")
+    for comp in expand_components(load("components.json"), publish):
         addons = comp.pop("_addons")
         repository = comp.pop("repository")
         if repository in owners:
@@ -200,7 +216,7 @@ def ensure_components(api: Weblate, project: str) -> list[str]:
         path = f"components/{project}/{slug}/"
         try:
             if api.exists(path):
-                settings = {k: v for k, v in comp.items() if k not in ("slug", "file_format", "repo", "vcs")}
+                settings = {k: v for k, v in comp.items() if k not in ("slug", "file_format", "repo")}
                 api.send("PATCH", path, settings)
                 print(f"== componente {slug}")
             else:
@@ -251,7 +267,7 @@ def wait_until_ready(url: str) -> bool:
 
 
 def main() -> int:
-    if len(sys.argv) != 2 or sys.argv[1] not in ("init", "pull"):
+    if len(sys.argv) != 2 or sys.argv[1] not in ACTIONS:
         print(USAGE)
         return 2
     url, token = os.environ.get("WEBLATE_URL"), os.environ.get("WEBLATE_API_TOKEN")
@@ -269,8 +285,11 @@ def main() -> int:
             slug = ensure_project(api, project)
             ensure_components(api, slug)
             ensure_glossary(api, slug, project["translation_languages"], project["glossary"])
-        else:
+        elif action == "pull":
             repository_operation(api, project["slug"], "pull")
+        else:
+            repository_operation(api, project["slug"], "commit")
+            repository_operation(api, project["slug"], "push")
     except (ApiError, error.URLError, HTTPException, OSError) as exc:
         print(f"Falha ao falar com o Weblate em {url}: {exc}")
         return 1
