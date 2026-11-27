@@ -6,13 +6,14 @@ WEBLATE_PORT ?= $(or $(shell sed -n 's/^WEBLATE_PORT=//p' .env 2>/dev/null | tai
 WEBLATE_URL ?= http://localhost:$(WEBLATE_PORT)
 WEBLATE_WAIT_TRIES ?= 120
 WEBLATE_TOKEN = $$($(DC) exec -T weblate weblate shell -c 'from rest_framework.authtoken.models import Token; from weblate.auth.models import User; print(Token.objects.get_or_create(user=User.objects.get(username="admin"))[0].key)' | tail -1)
-WEBLATE_ENV = WEBLATE_URL=$(WEBLATE_URL) WEBLATE_API_TOKEN=$(WEBLATE_TOKEN)
+WEBLATE_PUBLISH ?= $(or $(shell sed -n 's/^WEBLATE_PUBLISH=//p' .env 2>/dev/null | tail -1),0)
+WEBLATE_ENV = WEBLATE_URL=$(WEBLATE_URL) WEBLATE_API_TOKEN=$(WEBLATE_TOKEN) WEBLATE_PUBLISH=$(WEBLATE_PUBLISH)
 
 .DEFAULT_GOAL := help
 .PHONY: help select up down restart clean logs ps smoke \
         seed grant-access set-github-token migrate superuser shell-service \
         cli action-test plugin test-service test-front \
-        e2e-up e2e-test e2e-down weblate-wait weblate-init weblate-pull
+        e2e-up e2e-test e2e-down weblate-wait weblate-init weblate-pull weblate-push weblate-deploy-keys
 
 help: ## Lista os alvos
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | sort | \
@@ -96,3 +97,9 @@ weblate-init: weblate-wait ## Cria/atualiza no Weblate o projeto, os componentes
 
 weblate-pull: weblate-wait ## Puxa o develop dos repositorios para o Weblate
 	$(WEBLATE_ENV) python3 weblate/bootstrap.py pull
+
+weblate-push: weblate-wait ## Grava as traducoes pendentes e abre/atualiza os PRs weblate/translations -> develop
+	$(WEBLATE_ENV) python3 weblate/bootstrap.py push
+
+weblate-deploy-keys: weblate-wait ## Gera uma chave SSH por repositorio no Weblate e cadastra cada uma como deploy key com escrita (gh com admin)
+	$(WEBLATE_ENV) python3 weblate/bootstrap.py deploy-keys

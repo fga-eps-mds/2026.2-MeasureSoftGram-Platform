@@ -328,6 +328,7 @@ make select            # marque "i18n" (ou COMPOSE_PROFILES=...,i18n no .env)
 docker compose up -d   # o primeiro start do Weblate leva alguns minutos
 make weblate-init      # cria/atualiza projeto, componentes e glossário
 make weblate-pull      # puxa o develop dos repositórios agora (senão, 1x por dia)
+make weblate-push      # grava as traduções pendentes e abre/atualiza os PRs agora
 ```
 
 Login em http://localhost:8090 com `admin` / `WEBLATE_ADMIN_PASSWORD`.
@@ -335,9 +336,71 @@ Login em http://localhost:8090 com `admin` / `WEBLATE_ADMIN_PASSWORD`.
 - **Componentes pulados:** o `make weblate-init` pula o componente cujo
   repositório ainda não tem os arquivos de tradução no `develop`. Rode de novo
   depois do merge.
-- **Por enquanto só local:** o Weblate lê o `develop` dos repositórios, mas
-  ainda não publica as traduções. O envio por PR (conta-bot do GitHub e branch
-  `weblate/translations`) é configurado na etapa final do épico MSG37.
+- **Só leitura por padrão:** com `WEBLATE_PUBLISH=0` (o padrão), o
+  `make weblate-init` cria os componentes só para leitura do `develop`, sem
+  push. Para publicar, siga "Publicação sem conta-bot" abaixo.
+
+### Fluxo das traduções
+
+```
+código novo no develop ──► CI (i18n.yml) ──► PR i18n/template ──► develop
+                                                                   │ pull
+                                                                   ▼
+develop ◄── PR (weblate-pr.yml) ◄── push SSH em weblate/translations ◄── Weblate
+```
+
+- **Template:** cada repositório tem um workflow `i18n.yml` que roda a cada
+  push no `develop`, extrai os textos do código e abre (ou atualiza) o PR
+  `i18n/template` quando há texto novo: `pnpm i18n:extract` no Front,
+  `make i18n-extract` (pybabel `extract` + `update`) na CLI e
+  `npm run l10n:export` no Plugin. O `test.yml` do Front (`pnpm i18n:check`)
+  e o do Plugin falham se o template versionado estiver desatualizado.
+- **Traduções:** o Weblate grava as traduções no `develop` local dele e faz
+  push por SSH na branch `weblate/translations` do repositório central (um
+  commit por idioma). Isso acontece a cada commit do Weblate
+  (`push_on_commit`), que junta as alterações por até 24 h
+  (`commit_pending_age`); o `make weblate-push` força na hora. O push dispara
+  o workflow `weblate-pr.yml` do repositório, que abre o PR
+  `weblate/translations` → `develop` se ainda não houver um aberto.
+- **CI dos PRs automáticos:** PR aberto com o `GITHUB_TOKEN` não dispara
+  workflows. Por isso o `test.yml` também roda no push em
+  `weblate/translations` (feito pela deploy key, que dispara normalmente), e o
+  `i18n.yml` dispara o `test.yml` na branch `i18n/template` depois de abrir ou
+  atualizar o PR. Os checks aparecem no PR porque rodam no mesmo commit.
+
+### Publicação sem conta-bot
+
+Ninguém precisa de conta nova nem de token pessoal: o Weblate faz push com
+uma **deploy key** (chave SSH com escrita, cadastrada em cada repositório) e
+os PRs são abertos pelo `GITHUB_TOKEN` dos workflows.
+
+1. Com o Weblate no ar, `make weblate-deploy-keys` confia na host key do
+   `github.com`, gera no Weblate uma chave SSH por repositório e cadastra cada
+   uma como deploy key com escrita no repositório dela (precisa do `gh`
+   logado com **admin** nos três; sem admin, o comando mostra a chave pública
+   para alguém com admin cadastrar em *Settings → Deploy keys*, marcando
+   *Allow write access*). O GitHub não aceita a mesma deploy key em dois
+   repositórios, por isso as URLs de push usam os aliases `github-front`,
+   `github-cli` e `github-plugin`, que o `ssh/config` do Weblate liga a cada
+   chave; o compose libera esses aliases em `WEBLATE_VCS_ALLOW_HOSTS`.
+2. Em Front, CLI e Plugin, ligue *Settings → Actions → General → Allow GitHub
+   Actions to create and approve pull requests*.
+3. No `.env` da Platform, `WEBLATE_PUBLISH=1`, e rode `make weblate-init`.
+
+As chaves ficam no volume `weblate_data`: apagar o volume (ou subir o Weblate
+em outra máquina) gera chaves novas, que precisam ser cadastradas de novo
+(rode `make weblate-deploy-keys` outra vez). As
+deploy keys cadastradas pelo `gh` ficam ligadas ao login de quem rodou o
+comando e somem se esse login for revogado.
+
+### Pendência: hospedagem permanente
+
+O Weblate do compose serve para desenvolvimento e testes: ele só fica no ar
+enquanto alguém mantém a stack rodando, e por isso não recebe webhooks do
+GitHub (atualiza pelo pull diário ou pelo `make weblate-pull`). Hospedar o
+Weblate num servidor público, com HTTPS, domínio próprio e webhooks dos
+repositórios apontando para `/hooks/github/`, ficou fora do escopo do épico
+MSG37 e está registrado como pendência de infraestrutura.
 
 ## Troubleshooting
 

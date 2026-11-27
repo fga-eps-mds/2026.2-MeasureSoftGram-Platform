@@ -5,6 +5,8 @@ from __future__ import annotations
 import glob
 import json
 import os
+import re
+import subprocess
 import sys
 import time
 import uuid
@@ -12,13 +14,24 @@ from http.client import HTTPException
 from pathlib import Path
 from urllib import error, request
 
-USAGE = "uso: python3 weblate/bootstrap.py init|pull  (WEBLATE_URL e WEBLATE_API_TOKEN no ambiente)"
+ACTIONS = ("init", "pull", "push", "deploy-keys")
+USAGE = "uso: python3 weblate/bootstrap.py init|pull|push|deploy-keys  (WEBLATE_URL e WEBLATE_API_TOKEN no ambiente)"
 
 READY_TIMEOUT = 600
+DEPLOY_KEY_TITLE = "Weblate MeasureSoftGram"
+SSH_DIR = "/app/data/ssh"
+ENSURE_KEY_SCRIPT = r'''
+key="$1/deploy-$2"
+[ -f "$key" ] || ssh-keygen -q -t ed25519 -N "" -C "Weblate MeasureSoftGram ($2)" -f "$key"
+grep -qx "Host $2" "$1/config" 2>/dev/null ||
+  printf '\nHost %s\n  HostName github.com\n  User git\n  IdentityFile %s\n' "$2" "$key" >> "$1/config"
+cat "$key.pub"
+'''
 IMPORT_TIMEOUT = 120
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
+PUBLISH_OPTIONS = ("push", "push_branch")
 REPOSITORY_OPTIONS = {
     "vcs", "branch", "push", "push_branch", "push_on_commit", "commit_pending_age", "merge_style",
     "commit_message", "add_message", "delete_message", "merge_message", "addon_message",
@@ -96,13 +109,24 @@ def load(name: str) -> dict:
     return json.loads((HERE / name).read_text(encoding="utf-8"))
 
 
-def expand_components(spec: dict) -> list[dict]:
+def publishing_enabled() -> bool:
+    return os.environ.get("WEBLATE_PUBLISH", "") == "1"
+
+
+def local_only(comp: dict) -> dict:
+    return {**comp, **{k: "" for k in PUBLISH_OPTIONS}, "vcs": "git", "push_on_commit": False}
+
+
+def expand_components(spec: dict, publish: bool = True) -> list[dict]:
     defaults, repos = spec["defaults"], spec["repositories"]
     result = []
 
     def add(item: dict, repository: str) -> None:
         repo = repos[repository]
-        result.append({**defaults, **item, "repo": repo["repo"], "_addons": repo["addons"]})
+        comp = {**defaults, **item, "repo": repo["repo"], "_addons": repo["addons"]}
+        if "push" in repo:
+            comp["push"] = repo["push"]
+        result.append(comp if publish else local_only(comp))
 
     for comp in spec["components"]:
         if "namespaces_from" not in comp:
@@ -191,7 +215,10 @@ def link_to_owner(comp: dict, project: str, owner: str) -> dict:
 def ensure_components(api: Weblate, project: str) -> list[str]:
     created, skipped = [], []
     owners: dict[str, str] = {}
-    for comp in expand_components(load("components.json")):
+    publish = publishing_enabled()
+    if not publish:
+        print("!! WEBLATE_PUBLISH=0: componentes so leem o develop, sem push em weblate/translations")
+    for comp in expand_components(load("components.json"), publish):
         addons = comp.pop("_addons")
         repository = comp.pop("repository")
         if repository in owners:
@@ -200,7 +227,7 @@ def ensure_components(api: Weblate, project: str) -> list[str]:
         path = f"components/{project}/{slug}/"
         try:
             if api.exists(path):
-                settings = {k: v for k, v in comp.items() if k not in ("slug", "file_format", "repo", "vcs")}
+                settings = {k: v for k, v in comp.items() if k not in ("slug", "file_format", "repo")}
                 api.send("PATCH", path, settings)
                 print(f"== componente {slug}")
             else:
@@ -236,6 +263,54 @@ def repository_operation(api: Weblate, project: str, operation: str) -> None:
     print(f"== {operation}: {result}")
 
 
+def in_weblate(*args: str) -> str:
+    cmd = ["docker", "compose", "exec", "-T", "weblate", *args]
+    return subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, check=True).stdout
+
+
+def push_target(push: str) -> tuple[str, str] | None:
+    match = re.fullmatch(r"git@([\w.-]+):([\w.-]+/[\w.-]+?)(?:\.git)?", push)
+    return (match.group(1), match.group(2)) if match else None
+
+
+def registered_keys(slug: str) -> set[str]:
+    out = subprocess.run(
+        ["gh", "api", f"repos/{slug}/keys", "--paginate", "-q", ".[].key"],
+        capture_output=True, text=True, check=True,
+    ).stdout
+    return {" ".join(line.split()[:2]) for line in out.splitlines() if line}
+
+
+def ensure_deploy_keys() -> int:
+    in_weblate("weblate", "shell", "-c", 'from weblate.vcs.ssh import add_host_key; add_host_key(None, "github.com")')
+    print("== host key do github.com confiada")
+    failed = 0
+    for name, repo in load("components.json")["repositories"].items():
+        target = push_target(repo.get("push", ""))
+        if target is None:
+            print(f"!! {name}: push {repo.get('push')!r} nao e git@<alias>:<dono>/<repo>")
+            failed += 1
+            continue
+        alias, slug = target
+        public = in_weblate("sh", "-c", ENSURE_KEY_SCRIPT, "sh", SSH_DIR, alias).strip()
+        material = " ".join(public.split()[:2])
+        try:
+            if material in registered_keys(slug):
+                print(f"== {slug}: deploy key ja cadastrada ({alias})")
+                continue
+            subprocess.run(
+                ["gh", "api", f"repos/{slug}/keys", "-f", f"title={DEPLOY_KEY_TITLE} ({alias})",
+                 "-f", f"key={material}", "-F", "read_only=false"],
+                capture_output=True, text=True, check=True,
+            )
+            print(f"++ {slug}: deploy key com escrita cadastrada ({alias})")
+        except subprocess.CalledProcessError as exc:
+            print(f"!! {slug}: deploy key nao cadastrada ({exc.stderr.strip()}; precisa de admin no repositorio)")
+            print(f"   cadastre a mao, com escrita: {material}")
+            failed += 1
+    return 1 if failed else 0
+
+
 def wait_until_ready(url: str) -> bool:
     deadline = time.monotonic() + READY_TIMEOUT
     while time.monotonic() < deadline:
@@ -251,7 +326,7 @@ def wait_until_ready(url: str) -> bool:
 
 
 def main() -> int:
-    if len(sys.argv) != 2 or sys.argv[1] not in ("init", "pull"):
+    if len(sys.argv) != 2 or sys.argv[1] not in ACTIONS:
         print(USAGE)
         return 2
     url, token = os.environ.get("WEBLATE_URL"), os.environ.get("WEBLATE_API_TOKEN")
@@ -269,8 +344,16 @@ def main() -> int:
             slug = ensure_project(api, project)
             ensure_components(api, slug)
             ensure_glossary(api, slug, project["translation_languages"], project["glossary"])
-        else:
+        elif action == "deploy-keys":
+            return ensure_deploy_keys()
+        elif action == "pull":
             repository_operation(api, project["slug"], "pull")
+        else:
+            repository_operation(api, project["slug"], "commit")
+            repository_operation(api, project["slug"], "push")
+    except subprocess.CalledProcessError as exc:
+        print(f"Falha ao rodar {' '.join(exc.cmd[:4])}: {exc.stderr.strip()}")
+        return 1
     except (ApiError, error.URLError, HTTPException, OSError) as exc:
         print(f"Falha ao falar com o Weblate em {url}: {exc}")
         return 1

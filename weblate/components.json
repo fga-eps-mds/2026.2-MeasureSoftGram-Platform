@@ -2,7 +2,8 @@
   "defaults": {
     "vcs": "git",
     "branch": "develop",
-    "push_on_commit": false,
+    "push_branch": "weblate/translations",
+    "push_on_commit": true,
     "commit_pending_age": 24,
     "edit_template": false,
     "manage_units": false,
@@ -15,6 +16,7 @@
   "repositories": {
     "front": {
       "repo": "https://github.com/fga-eps-mds/2026.2-MeasureSoftGram-Front.git",
+      "push": "git@github-front:fga-eps-mds/2026.2-MeasureSoftGram-Front.git",
       "addons": [
         {
           "name": "weblate.git.squash",
@@ -26,6 +28,7 @@
     },
     "cli": {
       "repo": "https://github.com/fga-eps-mds/2026.2-MeasureSoftGram-CLI.git",
+      "push": "git@github-cli:fga-eps-mds/2026.2-MeasureSoftGram-CLI.git",
       "addons": [
         {
           "name": "weblate.git.squash",
@@ -41,6 +44,7 @@
     },
     "plugin": {
       "repo": "https://github.com/fga-eps-mds/2026.2-MeasureSoftGram-Plugin.git",
+      "push": "git@github-plugin:fga-eps-mds/2026.2-MeasureSoftGram-Plugin.git",
       "addons": [
         {
           "name": "weblate.git.squash",
@@ -77,7 +81,7 @@
       "new_base": "src/cli/locale/msgram.pot",
       "language_code_style": "posix",
       "file_format_params": {
-        "po_line_wrap": 77,
+        "po_line_wrap": 65535,
         "po_keep_previous": true
       }
     },

@@ -292,6 +292,7 @@ services:
       WEBLATE_EMAIL_BACKEND: ${WEBLATE_EMAIL_BACKEND:-django.core.mail.backends.console.EmailBackend}
       WEBLATE_AUTO_UPDATE: "1"
       WEBLATE_DEFAULT_AUTO_WATCH: "0"
+      WEBLATE_VCS_ALLOW_HOSTS: ${WEBLATE_VCS_ALLOW_HOSTS:-github.com,github-front,github-cli,github-plugin}
       POSTGRES_HOST: db
       POSTGRES_PORT: 5432
       POSTGRES_DB: ${WEBLATE_POSTGRES_DB:-weblate}
