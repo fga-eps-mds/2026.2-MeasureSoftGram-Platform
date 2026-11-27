@@ -336,10 +336,9 @@ Login em http://localhost:8090 com `admin` / `WEBLATE_ADMIN_PASSWORD`.
 - **Componentes pulados:** o `make weblate-init` pula o componente cujo
   repositório ainda não tem os arquivos de tradução no `develop`. Rode de novo
   depois do merge.
-- **Sem credencial do bot:** com `WEBLATE_GITHUB_TOKEN` vazio, o
+- **Só leitura por padrão:** com `WEBLATE_PUBLISH=0` (o padrão), o
   `make weblate-init` cria os componentes só para leitura do `develop`, sem
-  publicar nada. Preencha o token e rode o `make weblate-init` de novo para
-  ligar a publicação.
+  push. Para publicar, siga "Publicação sem conta-bot" abaixo.
 
 ### Fluxo das traduções
 
@@ -347,7 +346,7 @@ Login em http://localhost:8090 com `admin` / `WEBLATE_ADMIN_PASSWORD`.
 código novo no develop ──► CI (i18n.yml) ──► PR i18n/template ──► develop
                                                                    │ pull
                                                                    ▼
-develop ◄── PR weblate/translations ◄── push ◄── tradução no Weblate
+develop ◄── PR (weblate-pr.yml) ◄── push SSH em weblate/translations ◄── Weblate
 ```
 
 - **Template:** cada repositório tem um workflow `i18n.yml` que roda a cada
@@ -357,36 +356,42 @@ develop ◄── PR weblate/translations ◄── push ◄── tradução no
   `npm run l10n:export` no Plugin. O `test.yml` do Front (`pnpm i18n:check`)
   e o do Plugin falham se o template versionado estiver desatualizado.
 - **Traduções:** o Weblate grava as traduções no `develop` local dele e faz
-  push na branch `weblate/translations` do repositório central, abrindo o PR
-  `weblate/translations` → `develop` (um commit por idioma). Isso acontece a
-  cada commit do Weblate (`push_on_commit`), que junta as alterações por até
-  24 h (`commit_pending_age`); o `make weblate-push` força na hora.
+  push por SSH na branch `weblate/translations` do repositório central (um
+  commit por idioma). Isso acontece a cada commit do Weblate
+  (`push_on_commit`), que junta as alterações por até 24 h
+  (`commit_pending_age`); o `make weblate-push` força na hora. O push dispara
+  o workflow `weblate-pr.yml` do repositório, que abre o PR
+  `weblate/translations` → `develop` se ainda não houver um aberto.
+- **CI dos PRs automáticos:** PR aberto com o `GITHUB_TOKEN` não dispara
+  workflows. Por isso o `test.yml` também roda no push em
+  `weblate/translations` (feito pela deploy key, que dispara normalmente), e o
+  `i18n.yml` dispara o `test.yml` na branch `i18n/template` depois de abrir ou
+  atualizar o PR. Os checks aparecem no PR porque rodam no mesmo commit.
 
-### Conta-bot do GitHub
+### Publicação sem conta-bot
 
-O Weblate publica com uma conta-bot do GitHub, não com a conta de uma pessoa
-do time:
+Ninguém precisa de conta nova nem de token pessoal: o Weblate faz push com
+uma **deploy key** (chave SSH com escrita, cadastrada em cada repositório) e
+os PRs são abertos pelo `GITHUB_TOKEN` dos workflows.
 
-1. Crie (ou reaproveite) a conta-bot e convide-a como colaboradora de Front,
-   CLI e Plugin.
-2. Na conta-bot, gere um **fine-grained PAT** com acesso só a esses três
-   repositórios e as permissões **Contents: Read and write** e
-   **Pull requests: Read and write**.
-3. Preencha no `.env` da Platform:
+1. Com o Weblate no ar, `make weblate-deploy-keys` confia na host key do
+   `github.com`, gera no Weblate uma chave SSH por repositório e cadastra cada
+   uma como deploy key com escrita no repositório dela (precisa do `gh`
+   logado com **admin** nos três; sem admin, o comando mostra a chave pública
+   para alguém com admin cadastrar em *Settings → Deploy keys*, marcando
+   *Allow write access*). O GitHub não aceita a mesma deploy key em dois
+   repositórios, por isso as URLs de push usam os aliases `github-front`,
+   `github-cli` e `github-plugin`, que o `ssh/config` do Weblate liga a cada
+   chave; o compose libera esses aliases em `WEBLATE_VCS_ALLOW_HOSTS`.
+2. Em Front, CLI e Plugin, ligue *Settings → Actions → General → Allow GitHub
+   Actions to create and approve pull requests*.
+3. No `.env` da Platform, `WEBLATE_PUBLISH=1`, e rode `make weblate-init`.
 
-   ```bash
-   WEBLATE_GITHUB_USERNAME=<login da conta-bot>
-   WEBLATE_GITHUB_TOKEN=<PAT fine-grained>
-   WEBLATE_GITHUB_HOST=api.github.com
-   ```
-
-4. Rode `docker compose up -d weblate` e `make weblate-init`.
-5. Cadastre o mesmo PAT como secret `WEBLATE_GITHUB_TOKEN` em Front, CLI e
-   Plugin. Os workflows `i18n.yml` usam esse token para abrir o PR do
-   template; sem ele usam o `GITHUB_TOKEN`, e o PR do template abre sem
-   disparar a CI (limitação do GitHub com PRs criados pelo `GITHUB_TOKEN`) e
-   exige "Allow GitHub Actions to create and approve pull requests" ligado
-   nas configurações de Actions do repositório.
+As chaves ficam no volume `weblate_data`: apagar o volume (ou subir o Weblate
+em outra máquina) gera chaves novas, que precisam ser cadastradas de novo
+(rode `make weblate-deploy-keys` outra vez). As
+deploy keys cadastradas pelo `gh` ficam ligadas ao login de quem rodou o
+comando e somem se esse login for revogado.
 
 ### Pendência: hospedagem permanente
 

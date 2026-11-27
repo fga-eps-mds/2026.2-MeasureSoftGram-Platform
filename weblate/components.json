@@ -1,6 +1,6 @@
 {
   "defaults": {
-    "vcs": "github",
+    "vcs": "git",
     "branch": "develop",
     "push_branch": "weblate/translations",
     "push_on_commit": true,
@@ -16,7 +16,7 @@
   "repositories": {
     "front": {
       "repo": "https://github.com/fga-eps-mds/2026.2-MeasureSoftGram-Front.git",
-      "push": "https://github.com/fga-eps-mds/2026.2-MeasureSoftGram-Front.git",
+      "push": "git@github-front:fga-eps-mds/2026.2-MeasureSoftGram-Front.git",
       "addons": [
         {
           "name": "weblate.git.squash",
@@ -28,7 +28,7 @@
     },
     "cli": {
       "repo": "https://github.com/fga-eps-mds/2026.2-MeasureSoftGram-CLI.git",
-      "push": "https://github.com/fga-eps-mds/2026.2-MeasureSoftGram-CLI.git",
+      "push": "git@github-cli:fga-eps-mds/2026.2-MeasureSoftGram-CLI.git",
       "addons": [
         {
           "name": "weblate.git.squash",
@@ -44,7 +44,7 @@
     },
     "plugin": {
       "repo": "https://github.com/fga-eps-mds/2026.2-MeasureSoftGram-Plugin.git",
-      "push": "https://github.com/fga-eps-mds/2026.2-MeasureSoftGram-Plugin.git",
+      "push": "git@github-plugin:fga-eps-mds/2026.2-MeasureSoftGram-Plugin.git",
       "addons": [
         {
           "name": "weblate.git.squash",
